@@ -14,7 +14,7 @@ SET foreign_key_checks = 1;
 CREATE TABLE IF NOT EXISTS `users` (
 	`id` INT(10) AUTO_INCREMENT,
 	`master_id` INT(10),
-	`user_type` VARCHAR(50) NOT NULL,
+	`role` VARCHAR(50) NOT NULL,
 	`username` VARCHAR(50) NOT NULL,
 	`hashed_password` VARCHAR(100) NOT NULL,
     `email` VARCHAR(100) NOT NULL,

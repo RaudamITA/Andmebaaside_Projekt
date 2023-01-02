@@ -45,6 +45,15 @@ class HotelAmenity(BaseModel):
         orm_mode = True
 
 
+class RoomAmenity(BaseModel):
+    id: int | None = None
+    room_id: int | None = None
+    amenity: str | None = None
+
+    class Config:
+        orm_mode = True
+
+
 class HotelPicture(BaseModel):
     id: int | None = None
     hotel_id: int | None = None
@@ -62,6 +71,7 @@ class Room(BaseModel):
     bed_count: int | None = None
     ext_bed_count: int | None = None
     room_number: int | None = None
+    amenities: list[RoomAmenity] | None = None
 
     class Config:
         orm_mode = True
@@ -210,3 +220,82 @@ async def get_hotel_by_id(hotel_id: int, db: Session = Depends(get_db)):
     hotel.room_count = len(hotel.rooms)
 
     return hotel
+
+
+# Create hotel
+@app.post("/hotels/create")
+async def create_hotel(hotel: Hotel, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    token_data = validate_token(token)
+
+    # check if user has owner status
+    user = db.query(models.Users).filter(
+        models.Users.username == token_data.username).first()
+    if user.role != "owner":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="You do not have 'owner' status to create a hotel",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # take highest id and add 1
+    hotel.id = db.query(func.max(models.Hotels.id)).scalar() + 1
+
+    # create hotel
+    db.add(models.Hotels(
+        id=hotel.id,
+        owner_id=user.id,
+        name=hotel.name,
+        story_count=hotel.story_count,
+        stars=hotel.stars,
+        address=hotel.address,
+        phone=hotel.phone,
+        email=hotel.email,
+        website=hotel.website,
+        description=hotel.description,
+    ))
+
+    # create amenities
+    if hotel.amenities_in:
+        for amenity in hotel.amenities_in:
+            db.add(models.HotelAmenities(
+                hotel_id=hotel.id,
+                type="in",
+                name=amenity.amenity,
+            ))
+    if hotel.amenities_out:
+        for amenity in hotel.amenities_out:
+            db.add(models.HotelAmenities(
+                hotel_id=hotel.id,
+                type="out",
+                name=amenity.amenity,
+            ))
+    if hotel.pictures:
+        for picture in hotel.pictures:
+            db.add(models.HotelPictures(
+                hotel_id=hotel.id,
+                url=picture.url,
+            ))
+
+    db.commit()
+
+    if hotel.rooms:
+        for room in hotel.rooms:
+            room.id = db.query(func.max(models.Rooms.id)).scalar() + 1
+            db.add(models.Rooms(
+                room_id=room.id,
+                hotel_id=hotel.id,
+                type=room.name,
+                price=room.price,
+                bed_count=room.bed_count,
+                ext_bed_count=room.ext_bed_count,
+                room_number=room.room_number,
+            ))
+
+            if room.amenities:
+                for amenity in room.amenities:
+                    db.add(models.RoomAmenities(
+                        room_id=room.id,
+                        name=amenity.amenity,
+                    ))
+
+            db.commit()
