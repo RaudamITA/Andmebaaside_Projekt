@@ -57,15 +57,9 @@ CREATE TABLE IF NOT EXISTS `rooms` (
 	PRIMARY KEY (`id`)
 ) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS `hotel_amenities_in` (
+CREATE TABLE IF NOT EXISTS `hotel_amenities` (
 	`id` INT(15) AUTO_INCREMENT,
-	`hotel_id` INT(10),
-	`amenity` VARCHAR(100),
-	PRIMARY KEY (`id`)
-) ENGINE=InnoDB;
-
-CREATE TABLE IF NOT EXISTS `hotel_amenities_out` (
-	`id` INT(15) AUTO_INCREMENT,
+	`type` VARCHAR(50) NOT NULL,
 	`hotel_id` INT(10),
 	`amenity` VARCHAR(100),
 	PRIMARY KEY (`id`)
@@ -104,8 +98,7 @@ ALTER TABLE `users` ADD FOREIGN KEY (`master_id`) REFERENCES `users`(`id`);
 ALTER TABLE `users` ADD FOREIGN KEY (`assigned_hotel_id`) REFERENCES `hotels`(`id`);
 ALTER TABLE `hotels` ADD FOREIGN KEY (`owner_id`) REFERENCES `users`(`id`);
 ALTER TABLE `rooms` ADD FOREIGN KEY (`hotel_id`) REFERENCES `hotels`(`id`);
-ALTER TABLE `hotel_amenities_in` ADD FOREIGN KEY (`hotel_id`) REFERENCES `hotels`(`id`);
-ALTER TABLE `hotel_amenities_out` ADD FOREIGN KEY (`hotel_id`) REFERENCES `hotels`(`id`);
+ALTER TABLE `hotel_amenities` ADD FOREIGN KEY (`hotel_id`) REFERENCES `hotels`(`id`);
 ALTER TABLE `room_amenities` ADD FOREIGN KEY (`room_id`) REFERENCES `rooms`(`id`);
 ALTER TABLE `hotel_pictures` ADD FOREIGN KEY (`hotel_id`) REFERENCES `hotels`(`id`);
 ALTER TABLE `bookings` ADD FOREIGN KEY (`user_id`) REFERENCES `users`(`id`);

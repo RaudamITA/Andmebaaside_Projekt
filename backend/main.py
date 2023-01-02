@@ -176,20 +176,37 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 # --------------------- Hotels --------------------- #
 
 # Get all hotels
-@app.get("/", response_model=list[Hotel])
+@app.get("/hotels/all", response_model=list[Hotel])
 async def get_all_hotels(db: Session = Depends(get_db)):
     hotels = db.query(models.Hotels).all()
 
     for i in range(len(hotels)):
-        hotels[i].amenities_in = db.query(models.HotelAmenitiesIn).filter(
-            models.HotelAmenitiesIn.hotel_id == hotels[i].id).all()
-        hotels[i].amenities_out = db.query(models.HotelAmenitiesOut).filter(
-            models.HotelAmenitiesOut.hotel_id == hotels[i].id).all()
+        hotels[i].amenities_in = db.query(models.HotelAmenities).filter(
+            models.HotelAmenities.hotel_id == hotels[i].id, models.HotelAmenities.type == "in").all()
+        hotels[i].amenities_out = db.query(models.HotelAmenities).filter(
+            models.HotelAmenities.hotel_id == hotels[i].id, models.HotelAmenities.type == "out").all()
         hotels[i].pictures = db.query(models.HotelPictures).filter(
             models.HotelPictures.hotel_id == hotels[i].id).all()
-        hotels[i].rooms = db.query(models.Rooms).filter(
-            models.Rooms.hotel_id == hotels[i].id).all()
         if hotels[i].rooms:
             hotels.room_count = len(hotels[i].rooms)
 
     return hotels
+
+
+# Get hotel by id
+@app.get("/hotels/{hotel_id}", response_model=Hotel)
+async def get_hotel_by_id(hotel_id: int, db: Session = Depends(get_db)):
+    hotel = db.query(models.Hotels).filter(
+        models.Hotels.id == hotel_id).first()
+
+    hotel.pictures = db.query(models.HotelPictures).filter(
+        models.HotelPictures.hotel_id == hotel.id).all()
+    hotel.rooms = db.query(models.Rooms).filter(
+        models.Rooms.hotel_id == hotel.id).all()
+    hotel.amenities_in = db.query(models.HotelAmenities).filter(
+        models.HotelAmenities.hotel_id == hotel.id, models.HotelAmenities.type == "in").all()
+    hotel.amenities_out = db.query(models.HotelAmenities).filter(
+        models.HotelAmenities.hotel_id == hotel.id, models.HotelAmenities.type == "out").all()
+    hotel.room_count = len(hotel.rooms)
+
+    return hotel
