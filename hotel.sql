@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS `room_amenities` (
 CREATE TABLE IF NOT EXISTS `hotel_pictures` (
 	`id` INT(15) AUTO_INCREMENT,
 	`hotel_id` INT(10),
-	`url` VARCHAR(500),
+	`url` LONGTEXT,
 	PRIMARY KEY (`id`)
 ) ENGINE=InnoDB;
 

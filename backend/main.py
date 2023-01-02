@@ -31,6 +31,62 @@ class TokenData(BaseModel):
     username: str
 
 
+# User models
+
+
+# Hotel models
+
+class HotelAmenity(BaseModel):
+    id: int | None = None
+    hotel_id: int | None = None
+    amenity: str | None = None
+
+    class Config:
+        orm_mode = True
+
+
+class HotelPicture(BaseModel):
+    id: int | None = None
+    hotel_id: int | None = None
+    url: str | None = None
+
+    class Config:
+        orm_mode = True
+
+
+class Room(BaseModel):
+    id: int | None = None
+    hotel_id: int | None = None
+    type: str | None = None
+    price: int | None = None
+    bed_count: int | None = None
+    ext_bed_count: int | None = None
+    room_number: int | None = None
+
+    class Config:
+        orm_mode = True
+
+
+class Hotel(BaseModel):
+    id: int | None = None
+    owner_id: int | None = None
+    name: str | None = None
+    story_count: int | None = None
+    stars: int | None = None
+    address: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    website: str | None = None
+    description: str | None = None
+    amenities_in: list[HotelAmenity] | None = None
+    amenities_out: list[HotelAmenity] | None = None
+    pictures: list[HotelPicture] | None = None
+    rooms: list[Room] | None = None
+
+    class Config:
+        orm_mode = True
+
+
 # --------------------- Functions --------------------- #
 
 # Get database
@@ -86,6 +142,7 @@ app = FastAPI()
 
 
 # --------------------- Token --------------------- #
+
 # Get token
 @app.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
@@ -113,6 +170,26 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
+# --------------------- Users --------------------- #
+
+
+# --------------------- Hotels --------------------- #
+
+# Get all hotels
+@app.get("/", response_model=list[Hotel])
+async def get_all_hotels(db: Session = Depends(get_db)):
+    hotels = db.query(models.Hotels).all()
+
+    for i in range(len(hotels)):
+        hotels[i].amenities_in = db.query(models.HotelAmenitiesIn).filter(
+            models.HotelAmenitiesIn.hotel_id == hotels[i].id).all()
+        hotels[i].amenities_out = db.query(models.HotelAmenitiesOut).filter(
+            models.HotelAmenitiesOut.hotel_id == hotels[i].id).all()
+        hotels[i].pictures = db.query(models.HotelPictures).filter(
+            models.HotelPictures.hotel_id == hotels[i].id).all()
+        hotels[i].rooms = db.query(models.Rooms).filter(
+            models.Rooms.hotel_id == hotels[i].id).all()
+        if hotels[i].rooms:
+            hotels.room_count = len(hotels[i].rooms)
+
+    return hotels
