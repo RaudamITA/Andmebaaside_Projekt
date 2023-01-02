@@ -239,7 +239,7 @@ async def create_user(user: User, db: Session = Depends(get_db)):
 # --------------------- Hotels --------------------- #
 
 # Get all hotels
-@ app.get("/hotels/all", response_model=list[Hotel])
+@app.get("/hotels/all", response_model=list[Hotel])
 async def get_all_hotels(db: Session = Depends(get_db)):
     hotels = db.query(models.Hotels).all()
 
@@ -257,7 +257,7 @@ async def get_all_hotels(db: Session = Depends(get_db)):
 
 
 # Get hotel by id
-@ app.get("/hotels/{hotel_id}", response_model=Hotel)
+@app.get("/hotels/{hotel_id}", response_model=Hotel)
 async def get_hotel_by_id(hotel_id: int, db: Session = Depends(get_db)):
     hotel = db.query(models.Hotels).filter(
         models.Hotels.id == hotel_id).first()
@@ -276,7 +276,7 @@ async def get_hotel_by_id(hotel_id: int, db: Session = Depends(get_db)):
 
 
 # Create hotel
-@ app.post("/hotels/create")
+@app.post("/hotels/create")
 async def create_hotel(hotel: Hotel, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     try:
         token_data = validate_token(token)
