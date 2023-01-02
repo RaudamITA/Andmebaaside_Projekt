@@ -60,6 +60,7 @@ class User(BaseModel):
 class HotelAmenity(BaseModel):
     id: int | None = None
     hotel_id: int | None = None
+    type: str | None = None
     amenity: str | None = None
 
     class Config:
@@ -235,6 +236,11 @@ async def create_user(user: User, db: Session = Depends(get_db)):
         print(e)
         return {"message": "Error: " + str(e)}
 
+# Update user
+
+
+# Delete user
+
 
 # --------------------- Hotels --------------------- #
 
@@ -250,8 +256,12 @@ async def get_all_hotels(db: Session = Depends(get_db)):
             models.HotelAmenities.hotel_id == hotels[i].id, models.HotelAmenities.type == "out").all()
         hotels[i].pictures = db.query(models.HotelPictures).filter(
             models.HotelPictures.hotel_id == hotels[i].id).all()
+        hotels[i].rooms = db.query(models.Rooms).filter(
+            models.Rooms.hotel_id == hotels[i].id).all()
         if hotels[i].rooms:
-            hotels.room_count = len(hotels[i].rooms)
+            for room in hotels[i].rooms:
+                room.amenities = db.query(models.RoomAmenities).filter(
+                    models.RoomAmenities.room_id == room.id).all()
 
     return hotels
 
@@ -264,13 +274,12 @@ async def get_hotel_by_id(hotel_id: int, db: Session = Depends(get_db)):
 
     hotel.pictures = db.query(models.HotelPictures).filter(
         models.HotelPictures.hotel_id == hotel.id).all()
-    hotel.rooms = db.query(models.Rooms).filter(
-        models.Rooms.hotel_id == hotel.id).all()
     hotel.amenities_in = db.query(models.HotelAmenities).filter(
         models.HotelAmenities.hotel_id == hotel.id, models.HotelAmenities.type == "in").all()
     hotel.amenities_out = db.query(models.HotelAmenities).filter(
         models.HotelAmenities.hotel_id == hotel.id, models.HotelAmenities.type == "out").all()
-    hotel.room_count = len(hotel.rooms)
+    hotel.rooms = db.query(models.Rooms).filter(
+        models.Rooms.hotel_id == hotel.id).all()
 
     return hotel
 
@@ -292,7 +301,9 @@ async def create_hotel(hotel: Hotel, db: Session = Depends(get_db), token: str =
             )
 
         # take highest id and add 1
-        hotel.id = db.query(func.max(models.Hotels.id)).scalar() + 1
+        hotel.id = (0 if db.query(func.max(models.Hotels.id)).scalar(
+        ) == None else db.query(func.max(models.Users.id)).scalar(
+        )) + 1
 
         # create hotel
         db.add(models.Hotels(
@@ -314,14 +325,14 @@ async def create_hotel(hotel: Hotel, db: Session = Depends(get_db), token: str =
                 db.add(models.HotelAmenities(
                     hotel_id=hotel.id,
                     type="in",
-                    name=amenity.amenity,
+                    amenity=amenity.amenity,
                 ))
         if hotel.amenities_out:
             for amenity in hotel.amenities_out:
                 db.add(models.HotelAmenities(
                     hotel_id=hotel.id,
                     type="out",
-                    name=amenity.amenity,
+                    amenity=amenity.amenity,
                 ))
         if hotel.pictures:
             for picture in hotel.pictures:
@@ -334,11 +345,13 @@ async def create_hotel(hotel: Hotel, db: Session = Depends(get_db), token: str =
 
         if hotel.rooms:
             for room in hotel.rooms:
-                room.id = db.query(func.max(models.Rooms.id)).scalar() + 1
+                room.id = (0 if db.query(func.max(models.Rooms.id)).scalar(
+                ) == None else db.query(func.max(models.Rooms.id)).scalar(
+                )) + 1
                 db.add(models.Rooms(
-                    room_id=room.id,
+                    id=room.id,
                     hotel_id=hotel.id,
-                    type=room.name,
+                    type=room.type,
                     price=room.price,
                     bed_count=room.bed_count,
                     ext_bed_count=room.ext_bed_count,
@@ -349,7 +362,7 @@ async def create_hotel(hotel: Hotel, db: Session = Depends(get_db), token: str =
                     for amenity in room.amenities:
                         db.add(models.RoomAmenities(
                             room_id=room.id,
-                            name=amenity.amenity,
+                            amenity=amenity.amenity,
                         ))
 
                 db.commit()
@@ -357,3 +370,15 @@ async def create_hotel(hotel: Hotel, db: Session = Depends(get_db), token: str =
         return {"message": "Hotel created"}
     except Exception as e:
         return {"message": "Error: " + str(e)}
+
+
+# Update hotel
+
+
+# Delete hotel
+
+
+# Create room
+
+
+# Get room by hotel id and room number
