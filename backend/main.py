@@ -204,7 +204,6 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 # --------------------- Users --------------------- #
 
-
 # Create user
 @app.post("/users/create")
 async def create_user(user: User, db: Session = Depends(get_db)):
@@ -236,10 +235,37 @@ async def create_user(user: User, db: Session = Depends(get_db)):
         print(e)
         return {"message": "Error: " + str(e)}
 
-# Update user
+
+# Get user by id
+@app.get("/users/{user_id}", response_model=User)
+async def get_user_by_id(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(models.Users).filter(models.Users.id == user_id).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return user
+
+
+# todo Update user
 
 
 # Delete user
+@app.delete("/users/{user_id}")
+async def delete_user(user_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    try:
+        token_data = validate_token(token)
+        db_user_id = db.query(models.Users.id).filter(
+            models.Users.username == token_data.username).first()
+        if db_user_id == user_id:
+            db.query(models.Users).filter(models.Users.id == user_id).delete()
+            db.commit()
+            return {"message": "User deleted"}
+        else:
+            raise HTTPException(status_code=403, detail="Forbidden")
+    except Exception as e:
+        print(e)
+        return {"message": "Error: " + str(e)}
 
 
 # --------------------- Hotels --------------------- #
@@ -372,13 +398,24 @@ async def create_hotel(hotel: Hotel, db: Session = Depends(get_db), token: str =
         return {"message": "Error: " + str(e)}
 
 
-# Update hotel
+# todo Update hotel
 
 
-# Delete hotel
+# todo Delete hotel
 
 
-# Create room
+# todo Create room
 
 
-# Get room by hotel id and room number
+# todo Get room by hotel id and room number
+
+
+# todo Update room
+
+
+# todo Delete room
+
+
+# --------------------- Bookings --------------------- #
+
+# todo Get all bookings
