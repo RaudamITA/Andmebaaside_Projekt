@@ -229,11 +229,12 @@ async def create_user(user: User, db: Session = Depends(get_db)):
         ))
 
         db.commit()
-
-        return db.query(models.Users).filter(models.Users.id == user.id).first()
+        response = db.query(models.Users.username).filter(
+            models.Users.id == user.id).first()
+        return {"success": "User " + response[0] + " created successfully", "user_id": user.id}
     except Exception as e:
         print(e)
-        return {"message": "Error: " + str(e)}
+        return {"error": "Error: " + str(e)}
 
 
 # Get user by id
@@ -255,14 +256,23 @@ async def get_user_by_id(user_id: int, db: Session = Depends(get_db)):
 async def delete_user(user_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     try:
         token_data = validate_token(token)
-        db_user_id = db.query(models.Users.id).filter(
-            models.Users.username == token_data.username).first()
-        if db_user_id == user_id:
+        # Get deleting user username and master_id
+        db_user_username = db.query(models.Users.username).filter(
+            models.Users.id == user_id).first()[0]
+        db_user_master_id = db.query(models.Users.master_id).filter(
+            models.Users.id == user_id).first()[0]
+
+        # Get token owners id
+        token_owner_id = db.query(models.Users.id).filter(
+            models.Users.username == token_data.username).first()[0]
+
+        if db_user_username == token_data.username or db_user_master_id == token_owner_id:
             db.query(models.Users).filter(models.Users.id == user_id).delete()
             db.commit()
             return {"message": "User deleted"}
         else:
-            raise HTTPException(status_code=403, detail="Forbidden")
+            raise HTTPException(
+                status_code=403, detail="You are not allowed to delete this user")
     except Exception as e:
         print(e)
         return {"message": "Error: " + str(e)}
