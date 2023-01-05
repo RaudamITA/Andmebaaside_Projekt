@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -173,6 +174,15 @@ def validate_token(token):
 app = FastAPI()
 
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 # --------------------- Token --------------------- #
 
 # Get token
@@ -233,7 +243,6 @@ async def create_user(user: User, db: Session = Depends(get_db)):
             models.Users.id == user.id).first()
         return {"success": "User " + response[0] + " created successfully", "user_id": user.id}
     except Exception as e:
-        print(e)
         return {"error": "Error: " + str(e)}
 
 
@@ -249,10 +258,45 @@ async def get_user_by_id(user_id: int, db: Session = Depends(get_db)):
 
 
 # todo Update user
+@app.put("/users/update")
+async def update_user_with_token(user: User, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    try:
+        token_data = validate_token(token)
+        # User who needs to be updated
+        db_user = db.query(models.Users).filter(
+            models.Users.username == token_data.username).first()
+
+        # Validate updater
+        db_token_owner_id = db.query(models.Users.id).filter(
+            models.Users.username == token_data.username).first()
+
+        # Update user
+        if db_user.id == user.id or db_token_owner_id[0] == user.master_id:
+            db.query(models.Users).filter(models.Users.id == user.id).update({
+                "master_id": user.master_id if user.master_id else db_user.master_id,
+                "role": user.role if user.role else db_user.role,
+                "username": user.username if user.username else db_user.username,
+                "hashed_password": get_password_hash(user.password) if user.password else db_user.hashed_password,
+                "email": user.email if user.email else db_user.email,
+                "first_name": user.first_name if user.first_name else db_user.first_name,
+                "last_name": user.last_name if user.last_name else db_user.last_name,
+                "phone": user.phone if user.phone else db_user.phone,
+                "address": user.address if user.address else db_user.address,
+                "assigned_hotel_id": user.assigned_hotel_id if user.assigned_hotel_id else db_user.assigned_hotel_id,
+                "create_permission": int(user.create_permission) if user.create_permission else db_user.create_permission,
+                "read_permission": int(user.read_permission) if user.read_permission else db_user.read_permission,
+                "update_permission": int(user.update_permission) if user.update_permission else db_user.update_permission,
+                "delete_permission": int(user.delete_permission) if user.delete_permission else db_user.delete_permission
+            })
+
+        # db.commit()
+
+    except Exception as e:
+        return {"error": "Error: " + str(e)}
 
 
 # Delete user
-@app.delete("/users/{user_id}")
+@app.delete("/users/delete/{user_id}")
 async def delete_user(user_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     try:
         token_data = validate_token(token)
@@ -429,3 +473,15 @@ async def create_hotel(hotel: Hotel, db: Session = Depends(get_db), token: str =
 # --------------------- Bookings --------------------- #
 
 # todo Get all bookings
+
+
+# todo Get booking by id
+
+
+# todo Create booking
+
+
+# todo Update booking
+
+
+# todo Delete booking
