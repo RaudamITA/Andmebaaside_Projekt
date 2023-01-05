@@ -1,4 +1,4 @@
-import react from "react";
+import react, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Login.css";
 import "mdb-react-ui-kit/dist/css/mdb.min.css";
@@ -16,31 +16,30 @@ import {
 
 export default function Login() {
 	const navigate = useNavigate();
-	var userData = {
-		role: "regular",
-		username: "bob",
-		password: "bob",
-		email: "bob",
-		first_name: "bob",
-		last_name: "bob",
-		phone: "1873246",
-		address: "Su ema",
-		create_permission: false,
-		read_permission: false,
-		update_permission: false,
-		delete_permission: false,
-	};
-	function createUser() {
-		fetch("http://localhost:8000/users/create", {
+
+	const [username, setUsername] = useState(null);
+	const [password, setPassword] = useState(null);
+
+	const fetchToken = (username, password) => {
+		const options = {
 			method: "POST",
 			headers: {
-				"Content-Type": "application/json",
+				"Content-Type": "application/x-www-form-urlencoded",
 			},
-			body: JSON.stringify(userData),
-		})
+			body: new URLSearchParams({
+				grant_type: "password",
+				username: username,
+				password: password,
+			}),
+		};
+
+		fetch("http://localhost:8000/token", options)
 			.then((response) => response.json())
-			.then((data) => console.log(data));
-	}
+			.then((response) =>
+				localStorage.setItem("token", response.access_token)
+			)
+			.catch((err) => console.error(err));
+	};
 
 	const signUp = () => {
 		navigate("/register");
@@ -63,20 +62,23 @@ export default function Login() {
 							</p>
 
 							<MDBInput
+								className="text-white"
 								wrapperClass="mb-4 mx-5 w-100"
 								labelClass="text-white"
 								label="Username"
-								id="formControlLg"
-								type="username"
+								type="text"
 								size="lg"
+								onChange={(e) => setUsername(e.target.value)}
 							/>
+
 							<MDBInput
+								className="text-white"
 								wrapperClass="mb-4 mx-5 w-100"
 								labelClass="text-white"
 								label="Password"
-								id="formControlLg"
 								type="password"
 								size="lg"
+								onChange={(e) => setPassword(e.target.value)}
 							/>
 
 							<p className="small mb-3 pb-lg-2">
@@ -84,21 +86,16 @@ export default function Login() {
 									Forgot password?
 								</a>
 							</p>
-							<MDBBtn
-								outline
-								className="mx-2 px-50"
-								color="white"
-								size="lg"
-							>
+							<MDBBtn className="mx-2 px-5" size="lg">
 								Login
 							</MDBBtn>
 							<div>
 								<p className="mt-5 mb-0">
 									Don't have an account?{" "}
 									<a
-										href="#!"
+										href="/register"
 										class="text-white-50 fw-bold"
-										onClick={signUp}
+										onClick={fetchToken(username, password)}
 									>
 										Sign Up
 									</a>

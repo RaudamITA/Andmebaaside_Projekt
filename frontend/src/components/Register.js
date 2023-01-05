@@ -1,4 +1,4 @@
-import react from "react";
+import React, { useState } from "react";
 import "./Login.css";
 import "mdb-react-ui-kit/dist/css/mdb.min.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
@@ -14,19 +14,22 @@ import {
 } from "mdb-react-ui-kit";
 
 export default function Register() {
+	const [first_name, setFirstname] = useState(null);
+	const [last_name, setLastname] = useState(null);
+	const [email, setEmail] = useState(null);
+	const [username, setUsername] = useState(null);
+	const [password, setPassword] = useState(null);
+	const [phone, setPhone] = useState(null);
+	const [address, setAddress] = useState(null);
+
 	var userData = {
-		role: "regular",
-		username: "bob",
-		password: "bob",
-		email: "bob",
-		first_name: "bob",
-		last_name: "bob",
-		phone: "1873246",
-		address: "Su ema",
-		create_permission: false,
-		read_permission: false,
-		update_permission: false,
-		delete_permission: false,
+		username,
+		password,
+		email,
+		first_name,
+		last_name,
+		phone,
+		address,
 	};
 	function createUser() {
 		fetch("http://localhost:8000/users/create", {
@@ -50,53 +53,85 @@ export default function Register() {
 					>
 						<MDBCardBody className="p-5 d-flex flex-column align-items-center mx-auto w-100">
 							<h2 className="fw-bold mb-2 text-uppercase">
-								Login
+								Register
 							</h2>
 							<p className="text-white-50 mb-5">
-								Please enter your login and password!
+								Welcome to our site!
 							</p>
+							<MDBInput
+								className="text-white"
+								wrapperClass="mb-4 mx-5 w-100"
+								labelClass="text-white"
+								label="First Name"
+								type="text"
+								size="lg"
+								onChange={(e) => setFirstname(e.target.value)}
+							/>
 
 							<MDBInput
+								className="text-white"
+								wrapperClass="mb-4 mx-5 w-100"
+								labelClass="text-white"
+								label="Last Name"
+								type="text"
+								size="lg"
+								onChange={(e) => setLastname(e.target.value)}
+							/>
+							<MDBInput
+								className="text-white"
 								wrapperClass="mb-4 mx-5 w-100"
 								labelClass="text-white"
 								label="Email address"
-								id="formControlLg"
 								type="email"
 								size="lg"
+								onChange={(e) => setEmail(e.target.value)}
 							/>
 							<MDBInput
+								className="text-white"
+								wrapperClass="mb-4 mx-5 w-100"
+								labelClass="text-white"
+								label="Username"
+								type="text"
+								size="lg"
+								onChange={(e) => setUsername(e.target.value)}
+							/>
+
+							<MDBInput
+								className="text-white"
 								wrapperClass="mb-4 mx-5 w-100"
 								labelClass="text-white"
 								label="Password"
-								id="formControlLg"
 								type="password"
 								size="lg"
+								onChange={(e) => setPassword(e.target.value)}
 							/>
 
-							<p className="small mb-3 pb-lg-2">
-								<a class="text-white-50" href="#!">
-									Forgot password?
-								</a>
-							</p>
-							<MDBBtn
-								outline
-								className="mx-2 px-5"
-								color="white"
+							<MDBInput
+								className="text-white"
+								wrapperClass="mb-4 mx-5 w-100"
+								labelClass="text-white"
+								label="Phone Number"
+								type="number"
 								size="lg"
-							>
-								Login
-							</MDBBtn>
+								onChange={(e) => setPhone(e.target.value)}
+							/>
 
-							<div className="d-flex flex-row mt-3 mb-5">
-								<MDBBtn
-									tag="a"
-									color="none"
-									className="m-3"
-									style={{ color: "white" }}
-								>
-									<MDBIcon fab icon="google" size="lg" />
-								</MDBBtn>
-							</div>
+							<MDBInput
+								className="text-white"
+								wrapperClass="mb-4 mx-5 w-100"
+								labelClass="text-white"
+								label="Address"
+								type="text"
+								size="lg"
+								onChange={(e) => setAddress(e.target.value)}
+							/>
+							<MDBBtn
+								className="mx-5 mt-2 px-5"
+								size="lg"
+								onClick={createUser}
+							>
+								Register
+							</MDBBtn>
 						</MDBCardBody>
 					</MDBCard>
 				</MDBCol>
