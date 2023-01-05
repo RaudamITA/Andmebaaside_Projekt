@@ -257,7 +257,7 @@ async def get_user_by_id(user_id: int, db: Session = Depends(get_db)):
     return user
 
 
-# todo Update user
+# fixme Update user
 @app.put("/users/update")
 async def update_user_with_token(user: User, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
@@ -362,6 +362,12 @@ async def get_hotel_by_id(hotel_id: int, db: Session = Depends(get_db)):
         models.Rooms.hotel_id == hotel.id).all()
 
     return hotel
+
+
+# Get hotel by owner_id
+
+
+# Get hotel by name
 
 
 # Create hotel
