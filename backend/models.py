@@ -13,6 +13,7 @@ Base.prepare(engine, reflect=True)
 Users = Base.classes.users
 Hotels = Base.classes.hotels
 Rooms = Base.classes.rooms
+HotelAdmins = Base.classes.hotel_admins
 HotelAmenities = Base.classes.hotel_amenities
 RoomAmenities = Base.classes.room_amenities
 HotelPictures = Base.classes.hotel_pictures

@@ -37,8 +37,6 @@ class TokenData(BaseModel):
 
 class User(BaseModel):
     id: int | None = None
-    master_id: int | None = None
-    role: str | None = None
     username: str | None = None
     password: str | None = None
     email: str | None = None
@@ -46,11 +44,6 @@ class User(BaseModel):
     last_name: str | None = None
     phone: str | None = None
     address: str | None = None
-    assigned_hotel_id: int | None = None
-    create_permission: bool | None = None
-    read_permission: bool | None = None
-    update_permission: bool | None = None
-    delete_permission: bool | None = None
 
     class Config:
         orm_mode = True
@@ -191,7 +184,6 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     # get user from db by username
     user = db.query(models.Users).filter(
         models.Users.username == form_data.username).first()
-
     # authenticate user
     if not user:
         raise HTTPException(
@@ -222,20 +214,13 @@ async def create_user(user: User, db: Session = Depends(get_db)):
         ) == None else db.query(func.max(models.Users.id)).scalar()) + 1
         db.add(models.Users(
             id=user.id,
-            master_id=user.master_id if user.master_id else None,
-            role=user.role,
             username=user.username,
             hashed_password=get_password_hash(user.password),
             email=user.email,
             first_name=user.first_name,
             last_name=user.last_name,
             phone=user.phone,
-            address=user.address,
-            assigned_hotel_id=user.assigned_hotel_id,
-            create_permission=int(user.create_permission),
-            read_permission=int(user.read_permission),
-            update_permission=int(user.update_permission),
-            delete_permission=int(user.delete_permission)
+            address=user.address
         ))
 
         db.commit()
@@ -249,12 +234,16 @@ async def create_user(user: User, db: Session = Depends(get_db)):
 # Get user by id
 @app.get("/users/{user_id}", response_model=User)
 async def get_user_by_id(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(models.Users).filter(models.Users.id == user_id).first()
+    try:
+        user = db.query(models.Users).filter(
+            models.Users.id == user_id).first()
 
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
 
-    return user
+        return user
+    except Exception as e:
+        return {"error": "Error: " + str(e)}
 
 
 # fixme Update user
@@ -299,32 +288,32 @@ async def update_user_with_token(user: User, token: str = Depends(oauth2_scheme)
 @app.delete("/users/delete/{user_id}")
 async def delete_user(user_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     try:
+        # Validate token
         token_data = validate_token(token)
-        # Get deleting user username and master_id
-        db_user_username = db.query(models.Users.username).filter(
-            models.Users.id == user_id).first()[0]
-        db_user_master_id = db.query(models.Users.master_id).filter(
-            models.Users.id == user_id).first()[0]
 
-        # Get token owners id
-        token_owner_id = db.query(models.Users.id).filter(
-            models.Users.username == token_data.username).first()[0]
+        # Get token owner id
+        db_token_owner_id = db.query(models.Users.id).filter(
+            models.Users.username == token_data.username).first()
 
-        if db_user_username == token_data.username or db_user_master_id == token_owner_id:
+        # Get users master id
+        db_user_master_id = db.query(models.HotelAdmins.master_id).filter(
+            models.HotelAdmins.user_id == user_id).first()
+
+        if db_token_owner_id[0] == user_id or db_user_master_id == db_token_owner_id:
             db.query(models.Users).filter(models.Users.id == user_id).delete()
             db.commit()
-            return {"message": "User deleted"}
+            return {"success": "User deleted successfully"}
         else:
-            raise HTTPException(
-                status_code=403, detail="You are not allowed to delete this user")
+            return {"denied": "You are not authorized to delete this user"}
+
     except Exception as e:
         print(e)
-        return {"message": "Error: " + str(e)}
+        return {"error": "Error: " + str(e)}
 
 
 # --------------------- Hotels --------------------- #
 
-# Get all hotels
+# fixme Get all hotels
 @app.get("/hotels/all", response_model=list[Hotel])
 async def get_all_hotels(db: Session = Depends(get_db)):
     hotels = db.query(models.Hotels).all()
@@ -346,7 +335,7 @@ async def get_all_hotels(db: Session = Depends(get_db)):
     return hotels
 
 
-# Get hotel by id
+# fixme Get hotel by id
 @app.get("/hotels/{hotel_id}", response_model=Hotel)
 async def get_hotel_by_id(hotel_id: int, db: Session = Depends(get_db)):
     hotel = db.query(models.Hotels).filter(
@@ -364,13 +353,13 @@ async def get_hotel_by_id(hotel_id: int, db: Session = Depends(get_db)):
     return hotel
 
 
-# Get hotel by owner_id
+# todo Get hotel by owner_id
 
 
-# Get hotel by name
+# todo Get hotel by name
 
 
-# Create hotel
+# fixme Create hotel
 @app.post("/hotels/create")
 async def create_hotel(hotel: Hotel, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     try:
