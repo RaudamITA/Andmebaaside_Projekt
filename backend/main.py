@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from sqlalchemy import func
+from sqlalchemy import func, update
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from jose import JWTError, jwt
@@ -232,7 +232,7 @@ async def create_user(user: User, db: Session = Depends(get_db)):
 
 
 # Get user by id
-@app.get("/users/{user_id}", response_model=User)
+@app.get("/users/read/{user_id}", response_model=User)
 async def get_user_by_id(user_id: int, db: Session = Depends(get_db)):
     try:
         user = db.query(models.Users).filter(
@@ -246,41 +246,38 @@ async def get_user_by_id(user_id: int, db: Session = Depends(get_db)):
         return {"error": "Error: " + str(e)}
 
 
-# fixme Update user
-@app.put("/users/update")
-async def update_user_with_token(user: User, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+# Update user
+@app.put("/users/update/{user_id}")
+async def update_user_with_token(user_id: int, user: User, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
         token_data = validate_token(token)
-        # User who needs to be updated
-        db_user = db.query(models.Users).filter(
-            models.Users.username == token_data.username).first()
-
-        # Validate updater
-        db_token_owner_id = db.query(models.Users.id).filter(
-            models.Users.username == token_data.username).first()
+        token_owner_id = db.query(models.Users.id).filter(
+            models.Users.username == token_data.username).first()[0]
+        update_user = db.query(models.Users).filter(
+            models.Users.id == user_id).first()
+        print(user)
 
         # Update user
-        if db_user.id == user.id or db_token_owner_id[0] == user.master_id:
-            db.query(models.Users).filter(models.Users.id == user.id).update({
-                "master_id": user.master_id if user.master_id else db_user.master_id,
-                "role": user.role if user.role else db_user.role,
-                "username": user.username if user.username else db_user.username,
-                "hashed_password": get_password_hash(user.password) if user.password else db_user.hashed_password,
-                "email": user.email if user.email else db_user.email,
-                "first_name": user.first_name if user.first_name else db_user.first_name,
-                "last_name": user.last_name if user.last_name else db_user.last_name,
-                "phone": user.phone if user.phone else db_user.phone,
-                "address": user.address if user.address else db_user.address,
-                "assigned_hotel_id": user.assigned_hotel_id if user.assigned_hotel_id else db_user.assigned_hotel_id,
-                "create_permission": int(user.create_permission) if user.create_permission else db_user.create_permission,
-                "read_permission": int(user.read_permission) if user.read_permission else db_user.read_permission,
-                "update_permission": int(user.update_permission) if user.update_permission else db_user.update_permission,
-                "delete_permission": int(user.delete_permission) if user.delete_permission else db_user.delete_permission
-            })
+        if token_owner_id == user_id:
+            db.execute(update(models.Users).where(models.Users.id == user_id).values(
+                username=user.username if user.username else update_user.username,
+                hashed_password=get_password_hash(
+                    user.password) if user.password else update_user.hashed_password,
+                email=user.email if user.email else update_user.email,
+                first_name=user.first_name if user.first_name else update_user.first_name,
+                last_name=user.last_name if user.last_name else update_user.last_name,
+                phone=user.phone if user.phone else update_user.phone,
+                address=user.address if user.address else update_user.address
+            ))
+        else:
+            raise HTTPException(status_code=401, detail="Unauthorized")
 
-        # db.commit()
+        db.commit()
+
+        return {"success": "User " + user.username + " updated successfully"}
 
     except Exception as e:
+        print(e)
         return {"error": "Error: " + str(e)}
 
 
@@ -314,7 +311,7 @@ async def delete_user(user_id: int, db: Session = Depends(get_db), token: str = 
 # --------------------- Hotels --------------------- #
 
 # fixme Get all hotels
-@app.get("/hotels/all", response_model=list[Hotel])
+@app.get("/hotels/read/all", response_model=list[Hotel])
 async def get_all_hotels(db: Session = Depends(get_db)):
     hotels = db.query(models.Hotels).all()
 
@@ -336,7 +333,7 @@ async def get_all_hotels(db: Session = Depends(get_db)):
 
 
 # fixme Get hotel by id
-@app.get("/hotels/{hotel_id}", response_model=Hotel)
+@app.get("/hotels/read/{hotel_id}", response_model=Hotel)
 async def get_hotel_by_id(hotel_id: int, db: Session = Depends(get_db)):
     hotel = db.query(models.Hotels).filter(
         models.Hotels.id == hotel_id).first()
