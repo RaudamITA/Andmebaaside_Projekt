@@ -51,9 +51,9 @@ CREATE TABLE IF NOT EXISTS `rooms` (
 
 CREATE TABLE IF NOT EXISTS `hotel_admins` (
 	`id` INT(10) auto_increment,
-	`user_id` INT(10),
+	`user_id` INT(10) NOT NULL,
 	`master_id` INT(10),
-	`hotel_id` INT(10),
+	`hotel_id` INT(10) NOT NULL,
 	`role` VARCHAR(50) NOT NULL,
 	`create_permission` TINYINT(1),
     `read_permission` TINYINT(1),
