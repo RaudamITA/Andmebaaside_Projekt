@@ -21,6 +21,9 @@ export default function Login() {
 	const [password, setPassword] = useState(null);
 
 	const fetchToken = (username, password) => {
+		if (username === null || password === null) {
+			return;
+		}
 		const options = {
 			method: "POST",
 			headers: {
@@ -39,6 +42,8 @@ export default function Login() {
 				localStorage.setItem("token", response.access_token)
 			)
 			.catch((err) => console.error(err));
+
+		console.log("ma olen taun ja ma küsisin millegi pärast tokenit");
 	};
 
 	const signUp = () => {
@@ -82,11 +87,15 @@ export default function Login() {
 							/>
 
 							<p className="small mb-3 pb-lg-2">
-								<a class="text-white-50" href="#!">
+								<a className="text-white-50" href="#!">
 									Forgot password?
 								</a>
 							</p>
-							<MDBBtn className="mx-2 px-5" size="lg">
+							<MDBBtn
+								className="mx-2 px-5"
+								size="lg"
+								onClick={fetchToken(username, password)}
+							>
 								Login
 							</MDBBtn>
 							<div>
@@ -94,8 +103,7 @@ export default function Login() {
 									Don't have an account?{" "}
 									<a
 										href="/register"
-										class="text-white-50 fw-bold"
-										onClick={fetchToken(username, password)}
+										className="text-white-50 fw-bold"
 									>
 										Sign Up
 									</a>
