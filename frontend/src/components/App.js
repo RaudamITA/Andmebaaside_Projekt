@@ -29,18 +29,38 @@ import { BrowserRouter as Router } from "react-router-dom";
 import Login from "./Login.js";
 
 export default function App() {
+	//login popup
 	const [basicModal, setBasicModal] = useState(false);
 	const toggleShow = () => setBasicModal(!basicModal);
 
-	const [user, setUser] = useState(null);
+	//if isLoggedIn and username
+	const [fullname, setFullname] = useState(null);
 	const [isLoggedIn, setIsLoggedIn] = useState(false);
 
 	useEffect(() => {
-		if (localStorage.getItem("token") !== "undefined") {
-			setIsLoggedIn(true);
-		}
-	}, []);
+		if (
+			localStorage.getItem("token") !== "undefined" &&
+			localStorage.getItem("token") !== null
+		) {
+			fetch("http://localhost:8000/users/read/me", {
+				method: "GET",
+				headers: {
+					Authorization: `Bearer ${localStorage.getItem("token")}`,
+				},
+			})
+				.then((response) => response.json())
+				.then((response) => {
+					setFullname(response.first_name + " " + response.last_name);
+					console.log(response);
+				});
 
+			setIsLoggedIn(true);
+		} else {
+			setIsLoggedIn(false);
+		}
+	}, [toggleShow]);
+
+	//Login input
 	const [username, setUsername] = useState(null);
 	const [password, setPassword] = useState(null);
 
@@ -67,29 +87,50 @@ export default function App() {
 			)
 			.catch((err) => console.error(err));
 
-		console.log("ma olen taun ja ma küsisin millegi pärast tokenit");
+		console.log("Requesting Token");
+	};
+
+	const logOut = () => {
+		localStorage.removeItem("token");
+		setIsLoggedIn(false);
 	};
 
 	console.log(localStorage.getItem("token"));
+	console.log(isLoggedIn + " Is logged in?");
 
 	return (
 		<>
-			<MDBNavbar dark bgColor="dark">
+			<MDBNavbar
+				className="m-4"
+				dark
+				bgColor="dark"
+				style={{
+					borderRadius: "1rem",
+				}}
+			>
 				<MDBContainer fluid>
-					<MDBNavbarBrand>Hotel</MDBNavbarBrand>
+					<MDBNavbarBrand>Hotels</MDBNavbarBrand>
 					<MDBInputGroup
 						tag="form"
 						className="d-flex w-auto mb-3 mt-3"
 					>
 						<input
 							className="form-control"
-							placeholder="Search"
+							placeholder="Hotels.."
 							aria-label="Search"
 							type="Search"
 						/>
 						<MDBBtn outline>Search</MDBBtn>
 					</MDBInputGroup>
-					<MDBBtn onClick={toggleShow}>Log In</MDBBtn>
+					{isLoggedIn == false && (
+						<MDBBtn onClick={toggleShow}>Login</MDBBtn>
+					)}
+					{isLoggedIn && (
+						<div className="d-flex justify-content-center align-items-center h-100">
+							<p className="text-white mb-0 me-4">{fullname}</p>
+							<MDBBtn onClick={logOut}>Log Out</MDBBtn>
+						</div>
+					)}
 				</MDBContainer>
 			</MDBNavbar>
 			<MDBModal show={basicModal} setShow={setBasicModal} tabIndex="-1">
@@ -144,27 +185,18 @@ export default function App() {
 												setPassword(e.target.value)
 											}
 										/>
-
-										<p className="small mb-3 pb-lg-2">
-											<a
-												className="text-white-50"
-												href="#!"
-											>
-												Forgot password?
-											</a>
-										</p>
 										<MDBBtn
-											className="mx-2 px-5"
+											className="mt-4 mb-5 mx-2 px-5"
 											size="lg"
-											onClick={fetchToken(
-												username,
-												password
-											)}
+											onClick={
+												(fetchToken(username, password),
+												toggleShow)
+											}
 										>
 											Login
 										</MDBBtn>
 										<div>
-											<p className="mt-5 mb-0">
+											<p className="mb-0">
 												Don't have an account?{" "}
 												<a
 													href="/register"
