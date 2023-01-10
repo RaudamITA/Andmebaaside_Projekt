@@ -336,59 +336,123 @@ async def delete_user(user_id: int, db: Session = Depends(get_db), token: str = 
 # Get all hotels
 @app.get("/hotels/read/all", response_model=list[Hotel])
 async def get_all_hotels(db: Session = Depends(get_db)):
-    hotels = db.query(models.Hotels).all()
+    try:
+        hotels = db.query(models.Hotels).all()
 
-    for i in range(len(hotels)):
-        hotels[i].owner_id = db.query(models.HotelAdmins.user_id).filter(
-            models.HotelAdmins.hotel_id == hotels[i].id).all
-        hotels[i].amenities_in = db.query(models.HotelAmenities).filter(
-            models.HotelAmenities.hotel_id == hotels[i].id, models.HotelAmenities.type == "in").all()
-        hotels[i].amenities_out = db.query(models.HotelAmenities).filter(
-            models.HotelAmenities.hotel_id == hotels[i].id, models.HotelAmenities.type == "out").all()
-        hotels[i].pictures = db.query(models.HotelPictures).filter(
-            models.HotelPictures.hotel_id == hotels[i].id).all()
-        hotels[i].rooms = db.query(models.Rooms).filter(
-            models.Rooms.hotel_id == hotels[i].id).all()
-        if hotels[i].rooms:
-            for room in hotels[i].rooms:
+        for i in range(len(hotels)):
+            hotels[i].owner_id = db.query(models.HotelAdmins.user_id).filter(
+                models.HotelAdmins.hotel_id == hotels[i].id).all
+            hotels[i].amenities_in = db.query(models.HotelAmenities).filter(
+                models.HotelAmenities.hotel_id == hotels[i].id, models.HotelAmenities.type == "in").all()
+            hotels[i].amenities_out = db.query(models.HotelAmenities).filter(
+                models.HotelAmenities.hotel_id == hotels[i].id, models.HotelAmenities.type == "out").all()
+            hotels[i].pictures = db.query(models.HotelPictures).filter(
+                models.HotelPictures.hotel_id == hotels[i].id).all()
+            hotels[i].rooms = db.query(models.Rooms).filter(
+                models.Rooms.hotel_id == hotels[i].id).all()
+            if hotels[i].rooms:
+                for room in hotels[i].rooms:
+                    room.amenities = db.query(models.RoomAmenities).filter(
+                        models.RoomAmenities.room_id == room.id).all()
+
+        return hotels
+    except Exception as e:
+        return {"error": "Error: " + str(e)}
+
+
+# Get hotel by id
+@app.get("/hotels/read/id/{hotel_id}", response_model=Hotel)
+async def get_hotel_by_id(hotel_id: int, db: Session = Depends(get_db)):
+    try:
+        hotel = db.query(models.Hotels).filter(
+            models.Hotels.id == hotel_id).first()
+
+        hotel.owner_id = db.query(models.HotelAdmins.user_id).filter(
+            models.HotelAdmins.hotel_id == hotel.id).all
+        hotel.amenities_in = db.query(models.HotelAmenities).filter(
+            models.HotelAmenities.hotel_id == hotel.id, models.HotelAmenities.type == "in").all()
+        hotel.amenities_out = db.query(models.HotelAmenities).filter(
+            models.HotelAmenities.hotel_id == hotel.id, models.HotelAmenities.type == "out").all()
+        hotel.pictures = db.query(models.HotelPictures).filter(
+            models.HotelPictures.hotel_id == hotel.id).all()
+        hotel.rooms = db.query(models.Rooms).filter(
+            models.Rooms.hotel_id == hotel.id).all()
+
+        if hotel.rooms:
+            for room in hotel.rooms:
                 room.amenities = db.query(models.RoomAmenities).filter(
                     models.RoomAmenities.room_id == room.id).all()
 
-    return hotels
+        return hotel
+    except Exception as e:
+        return {"error": "Error: " + str(e)}
 
 
-# fixme Get hotel by id
-@app.get("/hotels/read/id/{hotel_id}", response_model=Hotel)
-async def get_hotel_by_id(hotel_id: int, db: Session = Depends(get_db)):
-    hotel = db.query(models.Hotels).filter(
-        models.Hotels.id == hotel_id).first()
+# test Get hotel by owner_id
+@app.get("/hotels/read/owner_id/{owner_id}", response_model=list[Hotel])
+async def get_hotel_by_owner_id(owner_id: int, db: Session = Depends(get_db)):
+    try:
+        hotel_ids = db.query(models.HotelAdmins.hotel_id).filter(
+            models.HotelAdmins.user_id == owner_id).all()
 
-    hotel.owner_id = db.query(models.HotelAdmins.user_id).filter(
-        models.HotelAdmins.hotel_id == hotel.id).all
-    hotel.amenities_in = db.query(models.HotelAmenities).filter(
-        models.HotelAmenities.hotel_id == hotel.id, models.HotelAmenities.type == "in").all()
-    hotel.amenities_out = db.query(models.HotelAmenities).filter(
-        models.HotelAmenities.hotel_id == hotel.id, models.HotelAmenities.type == "out").all()
-    hotel.pictures = db.query(models.HotelPictures).filter(
-        models.HotelPictures.hotel_id == hotel.id).all()
-    hotel.rooms = db.query(models.Rooms).filter(
-        models.Rooms.hotel_id == hotel.id).all()
+        hotels = []
 
-    if hotel.rooms:
-        for room in hotel.rooms:
-            room.amenities = db.query(models.RoomAmenities).filter(
-                models.RoomAmenities.room_id == room.id).all()
+        for hotel_id in hotel_ids:
+            hotel = db.query(models.Hotels).filter(
+                models.Hotels.id == hotel_id).first()
 
-    return hotel
+            hotel.owner_id = db.query(models.HotelAdmins.user_id).filter(
+                models.HotelAdmins.hotel_id == hotel.id).all
+            hotel.amenities_in = db.query(models.HotelAmenities).filter(
+                models.HotelAmenities.hotel_id == hotel.id, models.HotelAmenities.type == "in").all()
+            hotel.amenities_out = db.query(models.HotelAmenities).filter(
+                models.HotelAmenities.hotel_id == hotel.id, models.HotelAmenities.type == "out").all()
+            hotel.pictures = db.query(models.HotelPictures).filter(
+                models.HotelPictures.hotel_id == hotel.id).all()
+            hotel.rooms = db.query(models.Rooms).filter(
+                models.Rooms.hotel_id == hotel.id).all()
+
+            if hotel.rooms:
+                for room in hotel.rooms:
+                    room.amenities = db.query(models.RoomAmenities).filter(
+                        models.RoomAmenities.room_id == room.id).all()
+
+            hotels.append(hotel)
+
+        return hotels
+    except Exception as e:
+        return {"error": "Error: " + str(e)}
 
 
-# todo Get hotel by owner_id
+# test Get hotel by name
+@app.get("/hotels/read/name/{name}", response_model=Hotel)
+async def get_hotel_by_name(name: str, db: Session = Depends(get_db)):
+    try:
+        hotel = db.query(models.Hotels).filter(
+            models.Hotels.name == name).first()
+
+        hotel.owner_id = db.query(models.HotelAdmins.user_id).filter(
+            models.HotelAdmins.hotel_id == hotel.id).all
+        hotel.amenities_in = db.query(models.HotelAmenities).filter(
+            models.HotelAmenities.hotel_id == hotel.id, models.HotelAmenities.type == "in").all()
+        hotel.amenities_out = db.query(models.HotelAmenities).filter(
+            models.HotelAmenities.hotel_id == hotel.id, models.HotelAmenities.type == "out").all()
+        hotel.pictures = db.query(models.HotelPictures).filter(
+            models.HotelPictures.hotel_id == hotel.id).all()
+        hotel.rooms = db.query(models.Rooms).filter(
+            models.Rooms.hotel_id == hotel.id).all()
+
+        if hotel.rooms:
+            for room in hotel.rooms:
+                room.amenities = db.query(models.RoomAmenities).filter(
+                    models.RoomAmenities.room_id == room.id).all()
+
+        return hotel
+    except Exception as e:
+        return {"error": "Error: " + str(e)}
 
 
-# todo Get hotel by name
-
-
-# fixme Create hotel
+# Create hotel
 @app.post("/hotels/create")
 async def create_hotel(hotel: Hotel, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     try:
@@ -478,21 +542,104 @@ async def create_hotel(hotel: Hotel, db: Session = Depends(get_db), token: str =
                         ))
                 db.commit()
 
-        return {"message": "Hotel created"}
+        return {"success": "Hotel created"}
     except Exception as e:
-        return {"message": "Error: " + str(e)}
+        return {"error": "Error: " + str(e)}
 
 
 # todo Update hotel
 
 
-# todo Delete hotel
+# test Delete hotel
+@app.delete("/hotels/delete/{id}")
+async def delete_hotel(id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    try:
+        # Validate token
+        token_data = validate_token(token)
+
+        # Check if token owner is hotel owner
+        if db.query(models.HotelAdmins).filter(
+            models.HotelAdmins.user_id == token_data.user_id,
+            models.HotelAdmins.hotel_id == id,
+            models.HotelAdmins.role == "owner"
+        ).first() == None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="You do not have permission to delete this hotel",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        # Delete hotel
+        db.query(models.Hotels).filter(
+            models.Hotels.id == id).delete()
+        db.commit()
+    except Exception as e:
+        return {"error": "Error: " + str(e)}
 
 
-# todo Create room
+# test Create room
+@app.post("/rooms/create")
+async def create_room(room: Room, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    try:
+        # Validate token
+        token_data = validate_token(token)
+
+        # Check if token owner is hotel owner
+        if db.query(models.HotelAdmins).filter(
+            models.HotelAdmins.user_id == token_data.user_id,
+            models.HotelAdmins.hotel_id == room.hotel_id,
+            models.HotelAdmins.role == "owner"
+        ).first() == None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="You do not have permission to create a room in this hotel",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        # Create room
+        room.id = (0 if db.query(func.max(models.Rooms.id)).scalar(
+        ) == None else db.query(func.max(models.Rooms.id)).scalar(
+        )) + 1
+        db.add(models.Rooms(
+            id=room.id,
+            hotel_id=room.hotel_id,
+            type=room.type,
+            price=room.price,
+            bed_count=room.bed_count,
+            ext_bed_count=room.ext_bed_count,
+            room_number=room.room_number,
+        ))
+        if room.amenities:
+            for amenity in room.amenities:
+                db.add(models.RoomAmenities(
+                    room_id=room.id,
+                    amenity=amenity
+                ))
+        db.commit()
+
+        return {"success": f"Room {room.room_number} created"}
+    except Exception as e:
+        return {"error": "Error: " + str(e)}
 
 
-# todo Get room by hotel id and room number
+# test Get room by hotel id and room number
+@app.get("/rooms/get/{hotel_id}/{room_number}", response_model=Room)
+async def get_room_by_hotel_id_and_room_number(hotel_id: int, room_number: int, db: Session = Depends(get_db)):
+    try:
+        room = db.query(models.Rooms).filter(
+            models.Rooms.hotel_id == hotel_id,
+            models.Rooms.room_number == room_number
+        ).first()
+        if room == None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Room not found",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        return room
+    except Exception as e:
+        return {"error": "Error: " + str(e)}
 
 
 # todo Update room
