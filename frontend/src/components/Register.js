@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import "./Login.css";
+import { useNavigate } from "react-router-dom";
+import "../index.css";
 import "mdb-react-ui-kit/dist/css/mdb.min.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import {
@@ -21,6 +22,7 @@ export default function Register() {
 	const [password, setPassword] = useState(null);
 	const [phone, setPhone] = useState(null);
 	const [address, setAddress] = useState(null);
+	const navigate = useNavigate();
 
 	var userData = {
 		username,
@@ -31,17 +33,38 @@ export default function Register() {
 		phone,
 		address,
 	};
-	function createUser() {
-		fetch("http://localhost:8000/users/create", {
+
+	const createUser = async () => {
+		await fetch("http://localhost:8000/users/create", {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
 			},
 			body: JSON.stringify(userData),
-		})
+		});
+
+		const options = {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/x-www-form-urlencoded",
+			},
+			body: new URLSearchParams({
+				grant_type: "password",
+				username: username,
+				password: password,
+			}),
+		};
+
+		await fetch("http://localhost:8000/token", options)
 			.then((response) => response.json())
-			.then((data) => console.log(data));
-	}
+			.then((response) =>
+				localStorage.setItem("token", response.access_token)
+			)
+			.catch((err) => console.error(err));
+
+		navigate("/");
+		console.log("Requesting Token (Register)");
+	};
 
 	return (
 		<MDBContainer fluid>
@@ -139,17 +162,3 @@ export default function Register() {
 		</MDBContainer>
 	);
 }
-
-//return (
-//	<button
-//		onClick={createUser}
-//		style={{
-//			textAlign: "center",
-//			width: "100px",
-//			border: "1px solid gray",
-//			borderRadius: "5px",
-//		}}
-//	>
-//		Send data to backend
-//	</button>
-//);

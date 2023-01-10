@@ -26,7 +26,6 @@ import {
 	MDBModalFooter,
 } from "mdb-react-ui-kit";
 import { BrowserRouter as Router } from "react-router-dom";
-import Login from "./Login.js";
 
 export default function App() {
 	//login popup
@@ -64,7 +63,7 @@ export default function App() {
 	const [username, setUsername] = useState(null);
 	const [password, setPassword] = useState(null);
 
-	const fetchToken = (username, password) => {
+	const fetchToken = async (username, password) => {
 		if (username === null || password === null) {
 			return;
 		}
@@ -80,23 +79,22 @@ export default function App() {
 			}),
 		};
 
-		fetch("http://localhost:8000/token", options)
+		await fetch("http://localhost:8000/token", options)
 			.then((response) => response.json())
 			.then((response) =>
 				localStorage.setItem("token", response.access_token)
 			)
+
 			.catch((err) => console.error(err));
 
 		console.log("Requesting Token");
+		toggleShow();
 	};
 
 	const logOut = () => {
 		localStorage.removeItem("token");
 		setIsLoggedIn(false);
 	};
-
-	console.log(localStorage.getItem("token"));
-	console.log(isLoggedIn + " Is logged in?");
 
 	return (
 		<>
@@ -188,9 +186,8 @@ export default function App() {
 										<MDBBtn
 											className="mt-4 mb-5 mx-2 px-5"
 											size="lg"
-											onClick={
-												(fetchToken(username, password),
-												toggleShow)
+											onClick={() =>
+												fetchToken(username, password)
 											}
 										>
 											Login
