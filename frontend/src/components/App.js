@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "mdb-react-ui-kit/dist/css/mdb.min.css";
+import ReactChipInput from "react-chip-input";
 import {
 	MDBNavbar,
 	MDBContainer,
@@ -25,6 +26,8 @@ import {
 	MDBModalBody,
 	MDBModalFooter,
 	MDBRating,
+	MDBCheckbox,
+	MDBRange,
 } from "mdb-react-ui-kit";
 import { BrowserRouter as Router } from "react-router-dom";
 
@@ -163,7 +166,7 @@ export default function App() {
 						/>
 						<MDBBtn outline>Search</MDBBtn>
 					</MDBInputGroup>
-					{isLoggedIn == false && (
+					{isLoggedIn === false && (
 						<MDBBtn className="mb-0 me-4" onClick={toggleShowLogin}>
 							Login
 						</MDBBtn>
@@ -240,11 +243,7 @@ export default function App() {
 											className="mt-4 mb-5 mx-2 px-5"
 											size="lg"
 											onClick={() =>
-												createHotel(
-													localStorage.getItem(
-														"token"
-													)
-												)
+												fetchToken(username, password)
 											}
 										>
 											Login
@@ -321,17 +320,13 @@ export default function App() {
 												)
 											}
 										/>
-
-										<MDBInput
-											className="text-white"
-											wrapperClass="mb-4 mx-5 w-100"
-											labelClass="text-white"
-											label="Stars (1-5)"
-											type="text"
-											size="lg"
-											onChange={(e) =>
-												setHotelStars(e.target.value)
-											}
+										<h2>Stars</h2>
+										<MDBRange
+											defaultValue={2.5}
+											min="0"
+											max="5"
+											step="0.5"
+											id="customRange3"
 										/>
 
 										<MDBInput
@@ -395,34 +390,64 @@ export default function App() {
 												)
 											}
 										/>
+										<h2>Hotel's Amenities In</h2>
+										<div
+											className="mb-4"
+											style={{ maxWidth: "95%" }}
+										></div>
 
-										<MDBInput
-											className="text-white"
-											wrapperClass="mb-4 mx-5 w-100"
-											labelClass="text-white"
-											label="Hotel's Amenities In"
-											type="text"
-											size="lg"
-											onChange={(e) =>
-												setHotelAmenitiesIn(
-													e.target.value
-												)
-											}
-										/>
-
-										<MDBInput
-											className="text-white"
-											wrapperClass="mb-4 mx-5 w-100"
-											labelClass="text-white"
-											label="Hotel's Amenities Out"
-											type="text"
-											size="lg"
-											onChange={(e) =>
-												setHotelAmenitiesOut(
-													e.target.value
-												)
-											}
-										/>
+										<h2>Hotel's Amenities Out</h2>
+										<div
+											className="mb-4"
+											style={{ maxWidth: "95%" }}
+										>
+											<MDBCheckbox
+												name="inlineCheck"
+												id="inlineCheckbox1"
+												value="option1"
+												label="1"
+												inline
+											/>
+											<MDBCheckbox
+												name="inlineCheck"
+												id="inlineCheckbox2"
+												value="option2"
+												label="2"
+												inline
+											/>
+											<MDBCheckbox
+												name="inlineCheck"
+												id="inlineCheckbox3"
+												value="option3"
+												label="3 (disabled)"
+												disabled
+												inline
+											/>
+											<MDBCheckbox
+												name="inlineCheck"
+												id="inlineCheckbox3"
+												value="option3"
+												label="3 (disabled)"
+												disabled
+												inline
+											/>
+											<MDBCheckbox
+												name="inlineCheck"
+												id="inlineCheckbox3"
+												value="option3"
+												label="3 (disabled)"
+												disabled
+												inline
+											/>
+											<MDBCheckbox
+												name="inlineCheck"
+												id="inlineCheckbox3"
+												value="option3"
+												label="3 (disabled)"
+												disabled
+												inline
+											/>
+										</div>
 
 										<MDBInput
 											className="text-white"
@@ -440,7 +465,11 @@ export default function App() {
 											className="mt-4 mb-5 mx-2 px-5"
 											size="lg"
 											onClick={() =>
-												fetchToken(username, password)
+												createHotel(
+													localStorage.getItem(
+														"token"
+													)
+												)
 											}
 										>
 											Create

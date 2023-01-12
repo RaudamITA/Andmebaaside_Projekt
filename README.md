@@ -5,7 +5,7 @@
 > To install all required dependencies, run this command:
 >
 > ```bash
-> npm i package.json
+> npm i
 > ```
 >
 > And to start frontend server, run this command:
@@ -27,6 +27,8 @@
 >
 > #To create secret key run this in terminal: openssl rand -hex 32
 > SECRET_KEY = 'verysecretkeygoesherenlawdlanwldalwdbaljfbljnsxlkvnbodsjrvnf'
+> ALGORITHM = "HS256"
+> ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
 > ```
 >
 > To install all required packages, run this command:
