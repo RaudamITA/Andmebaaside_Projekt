@@ -82,27 +82,27 @@ async def update_user_with_token(user_id: int, user: UserIn, token: str = Depend
         token_data = validate_token(token)
         token_owner_id = db.query(Users.id).filter(
             Users.username == token_data.username).first()[0]
-        update_user = db.query(Users).filter(
+        original_user = db.query(Users).filter(
             Users.id == user_id).first()
 
         # Update user
         if token_owner_id == user_id:
             db.execute(update(Users).where(Users.id == user_id).values(
-                username=user.username if user.username else update_user.username,
+                username=user.username if user.username else original_user.username,
                 hashed_password=get_password_hash(
-                    user.password) if user.password else update_user.hashed_password,
-                email=user.email if user.email else update_user.email,
-                first_name=user.first_name if user.first_name else update_user.first_name,
-                last_name=user.last_name if user.last_name else update_user.last_name,
-                phone=user.phone if user.phone else update_user.phone,
-                address=user.address if user.address else update_user.address
+                    user.password) if user.password else original_user.hashed_password,
+                email=user.email if user.email else original_user.email,
+                first_name=user.first_name if user.first_name else original_user.first_name,
+                last_name=user.last_name if user.last_name else original_user.last_name,
+                phone=user.phone if user.phone else original_user.phone,
+                address=user.address if user.address else original_user.address
             ))
         else:
             raise HTTPException(status_code=401, detail="Unauthorized")
 
         db.commit()
 
-        return {"success": "User " + update_user.username + " updated successfully"}
+        return {"success": "User " + original_user.username + " updated successfully"}
 
     except Exception as e:
         print(e)

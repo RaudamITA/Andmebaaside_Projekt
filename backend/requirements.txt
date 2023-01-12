@@ -4,3 +4,5 @@ pydantic==1.10.2
 SQLAlchemy==1.4.45
 passlib==1.7.4
 python-jose==3.3.0
+PyMySQL==1.0.2
+python-multipart==0.0.5

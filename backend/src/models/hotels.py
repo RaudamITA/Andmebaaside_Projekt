@@ -11,7 +11,14 @@ class Owner(BaseModel):
         orm_mode = True
 
 
-class HotelAmenity(BaseModel):
+class HotelAmenityBasic(BaseModel):
+    amenity: str | None = None
+
+    class Config:
+        orm_mode = True
+
+
+class HotelAmenityDetiled(BaseModel):
     id: int | None = None
     hotel_id: int | None = None
     type: str | None = None
@@ -21,7 +28,14 @@ class HotelAmenity(BaseModel):
         orm_mode = True
 
 
-class HotelPicture(BaseModel):
+class HotelPictureBasic(BaseModel):
+    url: str | None = None
+
+    class Config:
+        orm_mode = True
+
+
+class HotelPictureDetiled(BaseModel):
     id: int | None = None
     hotel_id: int | None = None
     url: str | None = None
@@ -30,7 +44,7 @@ class HotelPicture(BaseModel):
         orm_mode = True
 
 
-class Hotel(BaseModel):
+class HotelBasic(BaseModel):
     id: int | None = None
     owners: list[Owner] | None = None
     name: str | None = None
@@ -41,9 +55,25 @@ class Hotel(BaseModel):
     email: str | None = None
     website: str | None = None
     description: str | None = None
-    amenities_in: list[HotelAmenity] | None = None
-    amenities_out: list[HotelAmenity] | None = None
-    pictures: list[HotelPicture] | None = None
+    amenities_in: list[HotelAmenityBasic] | None = None
+    amenities_out: list[HotelAmenityBasic] | None = None
+    pictures: list[HotelPictureBasic] | None = None
+
+
+class HotelDetiled(BaseModel):
+    id: int | None = None
+    owners: list[Owner] | None = None
+    name: str | None = None
+    story_count: int | None = None
+    stars: int | None = None
+    address: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    website: str | None = None
+    description: str | None = None
+    amenities_in: list[HotelAmenityDetiled] | None = None
+    amenities_out: list[HotelAmenityDetiled] | None = None
+    pictures: list[HotelPictureDetiled] | None = None
     rooms: list[Room] | None = None
 
     class Config:

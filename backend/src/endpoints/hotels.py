@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy import func
+from sqlalchemy import func, update, delete
 from sqlalchemy.orm import Session
 from database.database import get_db
 from database.models import Hotels, HotelAdmins, HotelAmenities, HotelPictures, Rooms, RoomAmenities, Users
-from src.models.hotels import Hotel
+from src.models.hotels import HotelBasic, HotelDetiled
 from src.functions.token import validate_token
 
 
@@ -20,7 +20,7 @@ router = APIRouter(
 
 # Create hotel
 @router.post("/create")
-async def create_hotel(hotel: Hotel, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+async def create_hotel(hotel: HotelBasic, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     try:
         token_data = validate_token(token)
 
@@ -81,35 +81,13 @@ async def create_hotel(hotel: Hotel, db: Session = Depends(get_db), token: str =
 
         db.commit()
 
-        if hotel.rooms:
-            for room in hotel.rooms:
-                room.id = (0 if db.query(func.max(Rooms.id)).scalar(
-                ) == None else db.query(func.max(Rooms.id)).scalar(
-                )) + 1
-                db.add(Rooms(
-                    id=room.id,
-                    hotel_id=hotel.id,
-                    room_number=room.room_number,
-                    type=room.type,
-                    price=room.price,
-                    bed_count=room.bed_count,
-                    ext_bed_count=room.ext_bed_count
-                ))
-                if room.amenities:
-                    for amenity in room.amenities:
-                        db.add(RoomAmenities(
-                            room_id=room.id,
-                            amenity=amenity.amenity
-                        ))
-                db.commit()
-
         return {"success": "Hotel created"}
     except Exception as e:
         return {"error": "Error: " + str(e)}
 
 
 # Get all hotels
-@router.get("/read/all", response_model=list[Hotel])
+@router.get("/read/all", response_model=list[HotelDetiled])
 async def get_all_hotels(db: Session = Depends(get_db)):
     try:
         hotels = db.query(Hotels).all()
@@ -151,7 +129,7 @@ async def get_all_hotels(db: Session = Depends(get_db)):
 
 
 # Get hotel by id
-@router.get("/read/id/{hotel_id}", response_model=Hotel)
+@router.get("/read/id/{hotel_id}", response_model=HotelDetiled)
 async def get_hotel_by_id(hotel_id: int, db: Session = Depends(get_db)):
     try:
         hotel = db.query(Hotels).filter(
@@ -194,7 +172,7 @@ async def get_hotel_by_id(hotel_id: int, db: Session = Depends(get_db)):
 
 
 # Get hotel by name
-@router.get("/read/name/{hotel_name}", response_model=Hotel)
+@router.get("/read/name/{hotel_name}", response_model=HotelDetiled)
 async def get_hotel_by_name(hotel_name: str, db: Session = Depends(get_db)):
     try:
         hotel = db.query(Hotels).filter(
@@ -237,7 +215,7 @@ async def get_hotel_by_name(hotel_name: str, db: Session = Depends(get_db)):
 
 
 # Get hotel by owner id
-@router.get("/read/owner/{owner_id}", response_model=list[Hotel])
+@router.get("/read/owner/{owner_id}", response_model=list[HotelDetiled])
 async def get_hotel_by_owner_id(owner_id: int, db: Session = Depends(get_db)):
     try:
         hotel_ids = []
@@ -299,15 +277,83 @@ async def get_hotel_by_owner_id(owner_id: int, db: Session = Depends(get_db)):
 
 # fixme Update hotel
 @router.put("/update/{hotel_id}")
-async def update_hotel(hotel_id: int, hotel: Hotel, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+async def update_hotel(hotel_id: int, hotel: HotelBasic, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     try:
-        return {"message": "Not implemented yet"}
+        token_data = validate_token(token)
+        # Check if token owner is hotel owner
+        hotel_owner_ids = []
+        for i in range(len(db.query(HotelAdmins.user_id).filter(
+                HotelAdmins.hotel_id == hotel_id).all())):
+            hotel_owner_ids.append(db.query(HotelAdmins.user_id).filter(
+                HotelAdmins.hotel_id == hotel_id).all()[i][0])
+
+        token_owner_id = db.query(Users.id).filter(
+            Users.username == token_data.username).first()[0]
+        if token_owner_id not in hotel_owner_ids:
+            return {"error": "You are not hotel owner"}
+
+        original_hotel = db.query(Hotels).filter(
+            Hotels.id == hotel_id).first()
+
+        # Update hotel
+        db.execute(update(Hotels).where(Hotels.id == hotel_id).values(
+            name=hotel.name if hotel.name else original_hotel.name,
+            story_count=hotel.story_count if hotel.story_count else original_hotel.story_count,
+            stars=hotel.stars if hotel.stars else original_hotel.stars,
+            address=hotel.address if hotel.address else original_hotel.address,
+            phone=hotel.phone if hotel.phone else original_hotel.phone,
+            email=hotel.email if hotel.email else original_hotel.email,
+            website=hotel.website if hotel.website else original_hotel.website,
+            description=hotel.description if hotel.description else original_hotel.description,
+        ))
+
+        # Update hotel amenities
+        # Delete old hotel amenities
+        db.execute(delete(HotelAmenities).where(
+            HotelAmenities.hotel_id == hotel_id))
+
+        # Add new hotel amenities
+        for amenity in hotel.amenities_in:
+            db.add(
+                HotelAmenities(
+                    hotel_id=hotel_id,
+                    type="in",
+                    amenity=amenity.amenity
+                )
+            )
+
+        for amenity in hotel.amenities_out:
+            db.add(
+                HotelAmenities(
+                    hotel_id=hotel_id,
+                    type="out",
+                    amenity=amenity.amenity
+                )
+            )
+
+        # Update hotel pictures
+        # Delete old hotel pictures
+        db.execute(delete(HotelPictures).where(
+            HotelPictures.hotel_id == hotel_id))
+
+        # Add new hotel pictures
+        for picture in hotel.pictures:
+            db.add(
+                HotelPictures(
+                    hotel_id=hotel_id,
+                    url=picture.url
+                )
+            )
+        db.commit()
+
+        return {"message": "Hotel updated successfully"}
+
     except Exception as e:
         return {"error": "Error: " + str(e)}
 
 
 # Delete hotel
-@router.delete("/delete/{hotel_id}")
+@ router.delete("/delete/{hotel_id}")
 async def delete_hotel(hotel_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     try:
         token_data = validate_token(token)
