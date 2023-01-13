@@ -275,7 +275,7 @@ async def get_hotel_by_owner_id(owner_id: int, db: Session = Depends(get_db)):
         return {"error": "Error: " + str(e)}
 
 
-# fixme Update hotel
+# Update hotel
 @router.put("/update/{hotel_id}")
 async def update_hotel(hotel_id: int, hotel: HotelBasic, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     try:
