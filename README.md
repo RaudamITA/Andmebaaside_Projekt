@@ -40,5 +40,5 @@
 > And to run server, run this:
 >
 > ```bash
-> uvicorn main:app --reload
+> python main.py
 > ```
