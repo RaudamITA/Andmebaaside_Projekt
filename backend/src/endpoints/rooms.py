@@ -3,8 +3,8 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 from database.database import get_db
-from database.models import Rooms, RoomAmenities, Users, HotelAdmins
-from src.models.rooms import Room
+from database.models import Rooms, RoomAmenities, Users, HotelAdmins, Bookings
+from src.models.rooms import Room, AvailableRooms
 from src.functions.token import validate_token
 
 
@@ -212,6 +212,35 @@ async def delete_room(room_id: int, db: Session = Depends(get_db), token: str = 
         db.commit()
 
         return {"message": "Room deleted successfully"}
+
+    except Exception as e:
+        return {"error": "Error: " + str(e)}
+
+
+# test Get all available room types by hotel id and with check in and check out dates
+@router.get("/available/hotel/{hotel_id}")
+async def get_available_rooms(hotel_id: int, times: AvailableRooms, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    try:
+        validate_token(token)
+
+        if times.check_in >= times.check_out:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Check in date must be before check out date")
+
+        # Get all available rooms
+        available_room_ids = db.query(Bookings.room_id).filter(
+            Bookings.hotel_id == hotel_id,
+            times.check_in <= Bookings.check_in >= times.check_out or times.check_in >= Bookings.check_out <= times.check_out
+        ).all()
+
+        available_rooms = []
+        for id in available_room_ids:
+            room_type = db.query(Rooms.type).filter(
+                Rooms.id == id).first()
+            if room_type not in available_rooms:
+                available_rooms.append(room_type)
+
+        return {"available_rooms": available_rooms, "available_room_ids": available_room_ids}
 
     except Exception as e:
         return {"error": "Error: " + str(e)}
