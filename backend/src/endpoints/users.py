@@ -1,5 +1,5 @@
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordBearer
 from src.models.users import UserOut, UserIn
 from sqlalchemy import func, update
@@ -39,9 +39,15 @@ async def create_user(user: UserIn, db: Session = Depends(get_db)):
         db.commit()
         response = db.query(Users.username).filter(
             Users.id == user.id).first()
-        return {"success": "User " + response[0] + " created successfully", "user_id": user.id}
+        return {
+            "message": "User " + response[0] + " created successfully", "user_id": user.id,
+            "status_code": status.HTTP_201_CREATED
+        }
     except Exception as e:
-        return {"error": "Error: " + str(e)}
+        return {
+            "message": "Error: " + str(e),
+            "status_code": status.HTTP_400_BAD_REQUEST
+        }
 
 
 # Get user by id
@@ -52,11 +58,17 @@ async def read_user(user_id: int, db: Session = Depends(get_db)):
             Users.id == user_id).first()
 
         if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+            return {
+                "message": "User not found",
+                "status_code": status.HTTP_404_NOT_FOUND
+            }
 
         return user
     except Exception as e:
-        return {"error": "Error: " + str(e)}
+        return {
+            "message": "Error: " + str(e),
+            "status_code": status.HTTP_400_BAD_REQUEST
+        }
 
 
 # Get my Data
@@ -68,11 +80,17 @@ async def read_user_me(token: str = Depends(oauth2_scheme), db: Session = Depend
             Users.username == token_data.username).first()
 
         if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+            return {
+                "message": "User not found",
+                "status_code": status.HTTP_404_NOT_FOUND
+            }
 
         return user
     except Exception as e:
-        return {"error": "Error: " + str(e)}
+        return {
+            "message": "Error: " + str(e),
+            "status_code": status.HTTP_400_BAD_REQUEST
+        }
 
 
 # Update user
@@ -98,15 +116,23 @@ async def update_user_with_token(user_id: int, user: UserIn, token: str = Depend
                 address=user.address if user.address else original_user.address
             ))
         else:
-            raise HTTPException(status_code=401, detail="Unauthorized")
+            return {
+                "message": "Unauthorized",
+                "status_code": status.HTTP_401_UNAUTHORIZED
+            }
 
         db.commit()
 
-        return {"success": "User " + original_user.username + " updated successfully"}
+        return {
+            "message": "User " + original_user.username + " updated successfully",
+            "status_code": status.HTTP_200_OK
+        }
 
     except Exception as e:
-        print(e)
-        return {"error": "Error: " + str(e)}
+        return {
+            "message": "Error: " + str(e),
+            "status_code": status.HTTP_400_BAD_REQUEST
+        }
 
 
 # Delete user
@@ -127,10 +153,18 @@ async def delete_user(user_id: int, db: Session = Depends(get_db), token: str = 
         if db_token_owner_id[0] == user_id or db_user_master_id == db_token_owner_id:
             db.query(Users).filter(Users.id == user_id).delete()
             db.commit()
-            return {"success": "User deleted successfully"}
+            return {
+                "message": "User deleted successfully",
+                "status_code": status.HTTP_200_OK
+            }
         else:
-            return {"denied": "You are not authorized to delete this user"}
+            return {
+                "message": "You are not authorized to delete this user",
+                "status_code": status.HTTP_401_UNAUTHORIZED
+            }
 
     except Exception as e:
-        print(e)
-        return {"error": "Error: " + str(e)}
+        return {
+            "message": "Error: " + str(e),
+            "status_code": status.HTTP_400_BAD_REQUEST
+        }

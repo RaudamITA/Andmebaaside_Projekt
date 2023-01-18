@@ -59,6 +59,9 @@ class HotelBasic(BaseModel):
     amenities_out: list[HotelAmenityBasic] | None = None
     pictures: list[HotelPictureBasic] | None = None
 
+    class Config:
+        orm_mode = True
+
 
 class HotelDetiled(BaseModel):
     id: int | None = None

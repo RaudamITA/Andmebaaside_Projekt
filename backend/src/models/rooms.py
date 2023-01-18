@@ -27,3 +27,6 @@ class Room(BaseModel):
 class AvailableRooms(BaseModel):
     check_in: int | None = None
     check_out: int | None = None
+
+    class Config:
+        orm_mode = True

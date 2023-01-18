@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy import update
+from sqlalchemy import func, update, delete, insert
 from sqlalchemy.orm import Session
 from database.database import get_db
 from database.models import Rooms, RoomAmenities, Users, HotelAdmins, Bookings
@@ -18,229 +18,220 @@ router = APIRouter(
 )
 
 
-# test Create new room
+# Create new room
 @router.post("/create")
 async def create_room(room: Room, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     try:
         token_data = validate_token(token)
-
-        # Check if user is admin/owner and has create access
         token_owner = db.query(Users).filter(
-            Users.username == token_data.username).first()
-        relation_to_hotel = db.query(HotelAdmins).filter(
-            HotelAdmins.user_id == token_owner.id).first()
+            Users.username == token_data.username
+        ).first()
+        all_token_owners_hotel_ids = []
+        for i in range(len(db.query(HotelAdmins).filter(HotelAdmins.user_id == token_owner.id).all())):
+            all_token_owners_hotel_ids.append(
+                db.query(HotelAdmins.hotel_id).filter(HotelAdmins.user_id == token_owner.id).all()[i][0])
 
-        if token_owner.role != 'admin' or token_owner.role != 'owner':
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+        # Check that token owner is creating room for hotel they own
+        if room.hotel_id not in all_token_owners_hotel_ids:
+            return {'message': 'User is not room owner or admin', 'status_code': status.HTTP_401_UNAUTHORIZED}
 
-        if relation_to_hotel.create_permission == 0:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+        # Check if token owner is hotels owner or admin with create permission
+        hotel_relation = db.query(HotelAdmins).filter(
+            HotelAdmins.user_id == token_owner.id and HotelAdmins.hotel_id == room.hotel_id).first()
+        if hotel_relation.create_permission == 0:
+            return {'message': 'User does not have create permission', 'status_code': status.HTTP_401_UNAUTHORIZED}
+
+        # Check if room number already exists
+        room_number = db.query(Rooms.room_number).filter(
+            Rooms.room_number == room.room_number and Rooms.hotel_id == room.hotel_id).first()[0]
+        if room_number == room.room_number:
+            return {'message': 'Room number already exists', 'status_code': status.HTTP_400_BAD_REQUEST}
 
         # Create new room
-        new_room = Rooms(
+        room.id = (0 if db.query(func.max(Rooms.id)).scalar() ==
+                   None else db.query(func.max(Rooms.id)).scalar()) + 1
+
+        db.add(Rooms(
+            id=room.id,
             hotel_id=room.hotel_id,
-            room_number=room.room_number,
-            room_type=room.room_type,
-            room_price=room.room_price,
+            type=room.type,
+            price=room.price,
             bed_count=room.bed_count,
-            ext_bed_count=room.ext_bed_count
-        )
+            ext_bed_count=room.ext_bed_count,
+            room_number=room.room_number))
 
-        db.add(new_room)
-        db.commit()
+        # db.commit()
 
-        # Create new room amenities
         for amenity in room.amenities:
-            new_room_amenity = RoomAmenities(
-                room_id=new_room.id,
-                amenity=amenity
-            )
+            print(amenity.amenity)
+            db.add(RoomAmenities(
+                room_id=room.id,
+                amenity=amenity.amenity
+            ))
+            # db.commit()
 
-            db.add(new_room_amenity)
-            db.commit()
-
-        return {"message": "Room created successfully"}
+        return {
+            "message": "Room created successfully",
+            "status_code": status.HTTP_201_CREATED
+        }
 
     except Exception as e:
-        return {"error": "Error: " + str(e)}
+        return {
+            "message": "Error: " + str(e),
+            "status_code": status.HTTP_400_BAD_REQUEST
+        }
 
 
-# test Get all hotel rooms
-@router.get("/read/hotel/{hotel_id}", response_model=Room)
+# Get all hotel rooms
+@router.get("/read/hotel/{hotel_id}", response_model=list[Room])
 async def get_hotel_rooms(hotel_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     try:
         token_data = validate_token(token)
-
-        # Check if user is admin/owner and has read access
         token_owner = db.query(Users).filter(
             Users.username == token_data.username).first()
-        relation_to_hotel = db.query(HotelAdmins).filter(
-            HotelAdmins.user_id == token_owner.id).first()
+        all_token_owners_hotel_ids = []
+        for i in range(len(db.query(HotelAdmins).filter(HotelAdmins.user_id == token_owner.id).all())):
+            all_token_owners_hotel_ids.append(
+                db.query(HotelAdmins.hotel_id).filter(HotelAdmins.user_id == token_owner.id).all()[i][0])
 
-        if token_owner.role != 'admin' or token_owner.role != 'owner':
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+        # Check that token owner is getting rooms for hotel they own
+        if hotel_id not in all_token_owners_hotel_ids:
+            return {'message': 'User is not room owner or admin', 'status_code': status.HTTP_401_UNAUTHORIZED}
 
-        if relation_to_hotel.read_permission == 0:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+        # Check if token owner is hotels owner or admin with read permission
+        hotel_relation = db.query(HotelAdmins).filter(
+            HotelAdmins.user_id == token_owner.id and HotelAdmins.hotel_id == hotel_id).first()
+        if hotel_relation.read_permission == 0:
+            return {'message': 'User does not have read permission', 'status_code': status.HTTP_401_UNAUTHORIZED}
 
-        rooms = db.query(Rooms).filter(
-            Rooms.hotel_id == hotel_id).all()
-
-        for room in rooms:
-            room.amenities = db.query(RoomAmenities).filter(
-                RoomAmenities.room_id == room.id).all()
+        # Get all rooms for hotel
+        rooms = db.query(Rooms).filter(Rooms.hotel_id == hotel_id).all()
+        for i in range(len(rooms)):
+            rooms[i].amenities = db.query(RoomAmenities).filter(
+                RoomAmenities.room_id == rooms[i].id).all()
 
         return rooms
 
     except Exception as e:
-        return {"error": "Error: " + str(e)}
+        return {
+            "message": "Error: " + str(e),
+            "status_code": status.HTTP_400_BAD_REQUEST
+        }
 
 
-# test Get room by hotel id and room number
-@router.get("/read/hotel/{hotel_id}/room/{room_number}", response_model=Room)
-async def get_room_by_number(hotel_id: int, room_number: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
-    try:
-        token_data = validate_token(token)
-
-        # Check if user is admin/owner and has read access
-        token_owner = db.query(Users).filter(
-            Users.username == token_data.username).first()
-        relation_to_hotel = db.query(HotelAdmins).filter(
-            HotelAdmins.user_id == token_owner.id).first()
-
-        if token_owner.role != 'admin' or token_owner.role != 'owner':
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
-
-        if relation_to_hotel.read_permission == 0:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
-
-        room = db.query(Rooms).filter(
-            Rooms.hotel_id == hotel_id, Rooms.room_number == room_number).first()
-
-        room.amenities = db.query(RoomAmenities).filter(
-            RoomAmenities.room_id == room.id).all()
-
-        return room
-
-    except Exception as e:
-        return {"error": "Error: " + str(e)}
-
-
-# test Update room
+# Update room
 @router.put("/update/{room_id}")
 async def update_room(room_id: int, room: Room, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     try:
         token_data = validate_token(token)
-
-        # Check if user is admin/owner and has update access
         token_owner = db.query(Users).filter(
             Users.username == token_data.username).first()
-        relation_to_hotel = db.query(HotelAdmins).filter(
-            HotelAdmins.user_id == token_owner.id).first()
+        all_token_owners_hotel_ids = []
+        for i in range(len(db.query(HotelAdmins).filter(HotelAdmins.user_id == token_owner.id).all())):
+            all_token_owners_hotel_ids.append(
+                db.query(HotelAdmins.hotel_id).filter(HotelAdmins.user_id == token_owner.id).all()[i][0])
 
-        if token_owner.role != 'admin' or token_owner.role != 'owner':
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+        # Check that token owner is getting rooms for hotel they own
+        if room.hotel_id not in all_token_owners_hotel_ids:
+            return {'message': 'User is not room owner or admin', 'status_code': status.HTTP_401_UNAUTHORIZED}
 
-        if relation_to_hotel.update_permission == 0:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+        # Check if token owner is hotels owner or admin with update permission
+        hotel_relation = db.query(HotelAdmins).filter(
+            HotelAdmins.user_id == token_owner.id and HotelAdmins.hotel_id == room.hotel_id).first()
+        if hotel_relation.update_permission == 0:
+            return {'message': 'User does not have update permission', 'status_code': status.HTTP_401_UNAUTHORIZED}
 
         # Update room
         db.execute(update(Rooms).where(Rooms.id == room_id).values(
             hotel_id=room.hotel_id,
-            room_number=room.room_number,
-            room_type=room.room_type,
-            room_price=room.room_price,
+            type=room.type,
+            price=room.price,
             bed_count=room.bed_count,
-            ext_bed_count=room.ext_bed_count
+            ext_bed_count=room.ext_bed_count,
+            room_number=room.room_number
         ))
+
+        # Update room amenities
+        db.execute(delete(RoomAmenities).where(
+            RoomAmenities.room_id == room_id))
+
+        for amenity in room.amenities:
+            db.execute(insert(RoomAmenities).values(
+                room_id=room_id,
+                amenity=amenity.amenity
+            ))
 
         db.commit()
 
-        # Delete old room amenities
-        db.query(RoomAmenities).filter(
-            RoomAmenities.room_id == room_id).delete()
-
-        # Create new room amenities
-        for amenity in room.amenities:
-            new_room_amenity = RoomAmenities(
-                room_id=room_id,
-                amenity=amenity
-            )
-
-            db.add(new_room_amenity)
-            db.commit()
-
-        return {"message": "Room updated successfully"}
+        return {
+            "message": "Room updated successfully",
+            "status_code": status.HTTP_201_CREATED
+        }
 
     except Exception as e:
-        return {"error": "Error: " + str(e)}
+        return {
+            "message": "Error: " + str(e),
+            "status_code": status.HTTP_400_BAD_REQUEST
+        }
 
 
-# test Delete room
+# Delete room
 @router.delete("/delete/{room_id}")
 async def delete_room(room_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     try:
         token_data = validate_token(token)
-
-        # Check if user is admin/owner and has delete access
         token_owner = db.query(Users).filter(
             Users.username == token_data.username).first()
-        relation_to_hotel = db.query(HotelAdmins).filter(
-            HotelAdmins.user_id == token_owner.id).first()
+        all_token_owners_hotel_ids = []
+        for i in range(len(db.query(HotelAdmins).filter(HotelAdmins.user_id == token_owner.id).all())):
+            all_token_owners_hotel_ids.append(
+                db.query(HotelAdmins.hotel_id).filter(HotelAdmins.user_id == token_owner.id).all()[i][0])
 
-        if token_owner.role != 'admin' or token_owner.role != 'owner':
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+        # Check that token owner is the owner of the room
+        room = db.query(Rooms).filter(Rooms.id == room_id).first()
+        if room.hotel_id not in all_token_owners_hotel_ids:
+            return {'message': 'User is not room owner or admin', 'status_code': status.HTTP_401_UNAUTHORIZED}
 
-        if relation_to_hotel.delete_permission == 0:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+        # Check if token owner is hotels owner or admin with delete permission
+        hotel_relation = db.query(HotelAdmins).filter(
+            HotelAdmins.user_id == token_owner.id and HotelAdmins.hotel_id == room.hotel_id).first()
+        if hotel_relation.delete_permission == 0:
+            return {'message': 'User does not have delete permission', 'status_code': status.HTTP_401_UNAUTHORIZED}
 
         # Delete room
-        room = db.query(Rooms).filter(
-            Rooms.id == room_id).first()
-
-        db.delete(room)
+        # Delete room amenities
+        db.execute(delete(RoomAmenities).where(
+            RoomAmenities.room_id == room_id))
+        db.execute(delete(Rooms).where(Rooms.id == room_id))
         db.commit()
 
-        return {"message": "Room deleted successfully"}
+        return {
+            "message": "Room deleted successfully",
+            "status_code": status.HTTP_201_CREATED
+        }
 
     except Exception as e:
-        return {"error": "Error: " + str(e)}
+        return {
+            "message": "Error: " + str(e),
+            "status_code": status.HTTP_400_BAD_REQUEST
+        }
 
 
-# test Get all available room types by hotel id and with check in and check out dates
-@router.get("/available/hotel/{hotel_id}")
+# FIXME: Get all available room types by hotel id and with check in and check out dates
+@ router.post("/available/hotel/{hotel_id}")
 async def get_available_rooms(hotel_id: int, times: AvailableRooms, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     try:
         validate_token(token)
 
-        if times.check_in >= times.check_out:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Check in date must be before check out date")
-
-        # Get all available rooms
-        available_room_ids = db.query(Bookings.room_id).filter(
-            Bookings.hotel_id == hotel_id,
-            times.check_in <= Bookings.check_in >= times.check_out or times.check_in >= Bookings.check_out <= times.check_out
-        ).all()
-
-        available_rooms = []
-        for id in available_room_ids:
-            room_type = db.query(Rooms.type).filter(
-                Rooms.id == id).first()
-            if room_type not in available_rooms:
-                available_rooms.append(room_type)
-
-        return {"available_rooms": available_rooms, "available_room_ids": available_room_ids}
+        # return {
+        #     "message": "Available rooms",
+        #     "status_code": status.HTTP_200_OK,
+        #     "available_rooms": available_rooms,
+        #     "available_room_ids": available_room_ids
+        # }
 
     except Exception as e:
-        return {"error": "Error: " + str(e)}
+        return {
+            "message": "Error: " + str(e),
+            "status_code": status.HTTP_400_BAD_REQUEST
+        }

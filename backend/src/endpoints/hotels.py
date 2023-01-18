@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import func, update, delete
 from sqlalchemy.orm import Session
@@ -81,9 +81,15 @@ async def create_hotel(hotel: HotelBasic, db: Session = Depends(get_db), token: 
 
         db.commit()
 
-        return {"success": "Hotel created"}
+        return {
+            "message": "Hotel created successfully",
+            "status_code": status.HTTP_200_OK
+        }
     except Exception as e:
-        return {"error": "Error: " + str(e)}
+        return {
+            "message": "Error: " + str(e),
+            "status_code": status.HTTP_400_BAD_REQUEST
+        }
 
 
 # Get all hotels
@@ -125,7 +131,10 @@ async def get_all_hotels(db: Session = Depends(get_db)):
 
         return hotels
     except Exception as e:
-        return {"error": "Error: " + str(e)}
+        return {
+            "message": "Error: " + str(e),
+            "status_code": status.HTTP_400_BAD_REQUEST
+        }
 
 
 # Get hotel by id
@@ -168,7 +177,10 @@ async def get_hotel_by_id(hotel_id: int, db: Session = Depends(get_db)):
 
         return hotel
     except Exception as e:
-        return {"error": "Error: " + str(e)}
+        return {
+            "message": "Error: " + str(e),
+            "status_code": status.HTTP_400_BAD_REQUEST
+        }
 
 
 # Get hotel by name
@@ -211,7 +223,10 @@ async def get_hotel_by_name(hotel_name: str, db: Session = Depends(get_db)):
 
         return hotel
     except Exception as e:
-        return {"error": "Error: " + str(e)}
+        return {
+            "message": "Error: " + str(e),
+            "status_code": status.HTTP_400_BAD_REQUEST
+        }
 
 
 # Get hotel by owner id
@@ -272,7 +287,10 @@ async def get_hotel_by_owner_id(owner_id: int, db: Session = Depends(get_db)):
         return hotels
 
     except Exception as e:
-        return {"error": "Error: " + str(e)}
+        return {
+            "message": "Error: " + str(e),
+            "status_code": status.HTTP_400_BAD_REQUEST
+        }
 
 
 # Update hotel
@@ -290,7 +308,10 @@ async def update_hotel(hotel_id: int, hotel: HotelBasic, db: Session = Depends(g
         token_owner_id = db.query(Users.id).filter(
             Users.username == token_data.username).first()[0]
         if token_owner_id not in hotel_owner_ids:
-            return {"error": "You are not hotel owner"}
+            return {
+                "message": "You are not hotel owner",
+                "status_code": status.HTTP_401_UNAUTHORIZED
+            }
 
         original_hotel = db.query(Hotels).filter(
             Hotels.id == hotel_id).first()
@@ -346,10 +367,16 @@ async def update_hotel(hotel_id: int, hotel: HotelBasic, db: Session = Depends(g
             )
         db.commit()
 
-        return {"message": "Hotel updated successfully"}
+        return {
+            "message": "Hotel updated successfully",
+            "status_code": status.HTTP_200_OK
+        }
 
     except Exception as e:
-        return {"error": "Error: " + str(e)}
+        return {
+            "message": "Error: " + str(e),
+            "status_code": status.HTTP_400_BAD_REQUEST
+        }
 
 
 # Delete hotel
@@ -369,12 +396,18 @@ async def delete_hotel(hotel_id: int, db: Session = Depends(get_db), token: str 
                 HotelAdmins.hotel_id == hotel_id).all()[i][0])
 
         if token_owner_id not in hotel_owner_ids:
-            return {"error": "You are not the owner of this hotel"}
+            return {
+                "message": "You are not hotel owner",
+                "status_code": status.HTTP_401_UNAUTHORIZED
+            }
 
         # Check if hotel exists
         hotel = db.query(Hotels).filter(Hotels.id == hotel_id).first()
         if not hotel:
-            return {"error": "Hotel does not exist"}
+            return {
+                "message": "Hotel does not exist",
+                "status_code": status.HTTP_400_BAD_REQUEST
+            }
 
         # Hotel deletion
         # Delete hotel owners
@@ -410,6 +443,12 @@ async def delete_hotel(hotel_id: int, db: Session = Depends(get_db), token: str 
 
         db.commit()
 
-        return {"success": "Hotel deleted"}
+        return {
+            "message": "Hotel deleted successfully",
+            "status_code": status.HTTP_200_OK
+        }
     except Exception as e:
-        return {"error": "Error: " + str(e)}
+        return {
+            "message": "Error: " + str(e),
+            "status_code": status.HTTP_400_BAD_REQUEST
+        }
