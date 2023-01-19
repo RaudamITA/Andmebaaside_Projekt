@@ -30,7 +30,7 @@ async def create_hotel(hotel: HotelBasic, db: Session = Depends(get_db), token: 
 
         # take highest id and add 1
         hotel.id = (0 if db.query(func.max(Hotels.id)).scalar(
-        ) == None else db.query(func.max(Users.id)).scalar(
+        ) == None else db.query(func.max(Hotels.id)).scalar(
         )) + 1
 
         # create hotel
@@ -76,7 +76,7 @@ async def create_hotel(hotel: HotelBasic, db: Session = Depends(get_db), token: 
             for picture in hotel.pictures:
                 db.add(HotelPictures(
                     hotel_id=hotel.id,
-                    picture=picture.picture
+                    url=picture.url
                 ))
 
         db.commit()

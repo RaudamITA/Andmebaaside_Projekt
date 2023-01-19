@@ -1,0 +1,40 @@
+.Tags {
+	font-family: sans-serif;
+	text-align: center;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	align-content: center;
+}
+.tag-container {
+	display: flex;
+	flex-wrap: wrap;
+	min-height: 30px;
+	border: 1px solid gray;
+	border-radius: 5px;
+	padding: 10px;
+}
+.tag {
+	display: flex;
+	align-items: center;
+	padding: 5px;
+	border: 1px solid gray;
+	border-radius: 5px;
+	height: 25px;
+	margin: 2px 5px 2px 0px;
+	color: white;
+}
+
+.tag-container input {
+	border: none;
+	flex: 1;
+	outline: none;
+	padding: 5;
+	background: rgb(51, 45, 45);
+	color: white;
+	width: 10%;
+}
+.tag span {
+	margin-left: 5px;
+	cursor: pointer;
+}
