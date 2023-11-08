@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from database.database import get_db
 from database.models import Users, HotelAdmins
 from src.functions.token import validate_token, get_password_hash
+from src.functions.log import log
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -39,11 +40,14 @@ async def create_user(user: UserIn, db: Session = Depends(get_db)):
         db.commit()
         response = db.query(Users.username).filter(
             Users.id == user.id).first()
+        
+        await log(user.username, 'Login for access token', '201', db=db)
         return {
             "message": "User " + response[0] + " created successfully", "user_id": user.id,
             "status_code": status.HTTP_201_CREATED
         }
     except Exception as e:
+        await log(user.username, 'Login for access token', '400', db=db)
         return {
             "message": "Error: " + str(e),
             "status_code": status.HTTP_400_BAD_REQUEST

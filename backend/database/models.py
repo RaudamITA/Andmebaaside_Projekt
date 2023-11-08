@@ -18,3 +18,4 @@ HotelAmenities = Base.classes.hotel_amenities
 RoomAmenities = Base.classes.room_amenities
 HotelPictures = Base.classes.hotel_pictures
 Bookings = Base.classes.bookings
+Log = Base.classes.log

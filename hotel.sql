@@ -99,6 +99,15 @@ CREATE TABLE IF NOT EXISTS `bookings` (
 
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS `log` (
+	`id` INT(10) AUTO_INCREMENT,
+	`who` VARCHAR(50) NOT NULL,
+	`what` VARCHAR(500) NOT NULL,
+	`when` VARCHAR(10) NOT NULL,
+	`status` VARCHAR(3) NOT NULL,
+	PRIMARY KEY (`id`)
+) ENGINE=InnoDB;
+
 ALTER TABLE `rooms` ADD FOREIGN KEY (`hotel_id`) REFERENCES `hotels`(`id`);
 ALTER TABLE `hotel_admins` ADD FOREIGN KEY (`master_id`) REFERENCES `users`(`id`);
 ALTER TABLE `hotel_admins` ADD FOREIGN KEY (`hotel_id`) REFERENCES `hotels`(`id`);

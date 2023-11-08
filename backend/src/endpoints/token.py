@@ -8,6 +8,7 @@ from database.models import Users
 from src.models.token import Token
 from src.functions.token import verify_password, create_access_token
 from data import ACCESS_TOKEN_EXPIRE_MINUTES
+from src.functions.log import log
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -27,12 +28,14 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         Users.username == form_data.username).first()
     # authenticate user
     if not user:
+        log(user.username, 'Login for access token', '400', db=db)
         return {
             'message': 'Incorrect username or password',
             'status_code': status.HTTP_400_BAD_REQUEST,
             'headers': {'WWW-Authenticate': 'Bearer'}
         }
     if not verify_password(form_data.password, user.hashed_password):
+        log(user.username, 'Login for access token', '400', db=db)
         return {
             'message': 'Incorrect username or password',
             'status_code': status.HTTP_400_BAD_REQUEST,
@@ -42,4 +45,6 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    await log(user.username, 'Login for access token', '200', db=db)
+
+    return {"access_token": access_token, "token_type": "bearer", 'status_code': status.HTTP_200_OK}
