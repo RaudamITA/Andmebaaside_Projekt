@@ -6,6 +6,7 @@ from src.models.bookings import BookingIn, BookingOut
 from src.functions.token import validate_token
 from database.database import get_db
 from database.models import Bookings, Users, HotelAdmins, Rooms
+from src.functions.log import log
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -40,11 +41,13 @@ async def create_booking(booking: BookingIn, token: str = Depends(oauth2_scheme)
 
         db.commit()
 
+        await log(token_data.username, 'Create booking', '201', db=db)
         return {
             "message": "Booking created successfully",
             "status_code": status.HTTP_201_CREATED
         }
     except Exception as e:
+        await log(token_data.username, 'Create booking', '400', db=db)
         return {
             "message": "Error: " + str(e),
             "status_code": status.HTTP_400_BAD_REQUEST
@@ -212,12 +215,14 @@ async def update_booking(booking_id: int, booking: BookingIn, token: str = Depen
         hotel_relation = db.query(HotelAdmins).filter(
             HotelAdmins.user_id == token_owner.id and HotelAdmins.hotel_id == booking.hotel_id).first()
         if hotel_relation.update_permission == 0:
+            await log(token_data.username, 'Update booking', '401', db=db)
             return {'message': 'User does not have update permission', 'status_code': status.HTTP_401_UNAUTHORIZED}
 
         # Check if booking exists
         booking_exists = db.query(Bookings).filter(
             Bookings.id == booking_id).first()
         if booking_exists is None:
+            await log(token_data.username, 'Update booking', '400', db=db)
             return {'message': 'Booking does not exist', 'status_code': status.HTTP_400_BAD_REQUEST}
 
         # Update booking
@@ -235,9 +240,11 @@ async def update_booking(booking_id: int, booking: BookingIn, token: str = Depen
         )
         db.commit()
 
+        await log(token_data.username, 'Update booking', '200', db=db)
         return {'message': 'Booking updated', 'status_code': status.HTTP_200_OK}
 
     except Exception as e:
+        await log(token_data.username, 'Update booking', '400', db=db)
         return {
             "message": "Error: " + str(e),
             "status_code": status.HTTP_400_BAD_REQUEST
@@ -261,11 +268,14 @@ async def delete_booking(booking_id: int, token: str = Depends(oauth2_scheme), d
         if booking.user_id == token_owner.id or booking.hotel_id in all_token_owners_hotel_ids:
             db.execute(delete(Bookings).where(Bookings.id == booking_id))
             db.commit()
+            await log(token_data.username, 'Delete booking', '200', db=db)
             return {'message': 'Booking deleted', 'status_code': status.HTTP_200_OK}
         else:
+            await log(token_data.username, 'Delete booking', '401', db=db)
             return {'message': 'User is not booking owner or admin', 'status_code': status.HTTP_401_UNAUTHORIZED}
 
     except Exception as e:
+        await log(token_data.username, 'Delete booking', '400', db=db)
         return {
             "message": "Error: " + str(e),
             "status_code": status.HTTP_400_BAD_REQUEST

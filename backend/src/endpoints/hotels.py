@@ -6,6 +6,7 @@ from database.database import get_db
 from database.models import Hotels, HotelAdmins, HotelAmenities, HotelPictures, Rooms, RoomAmenities, Users
 from src.models.hotels import HotelBasic, HotelDetiled
 from src.functions.token import validate_token
+from src.functions.log import log
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -81,11 +82,13 @@ async def create_hotel(hotel: HotelBasic, db: Session = Depends(get_db), token: 
 
         db.commit()
 
+        await log(user.username, 'Create hotel', '200', db=db)
         return {
             "message": "Hotel created successfully",
             "status_code": status.HTTP_200_OK
         }
     except Exception as e:
+        await log(user.username, 'Create hotel', '400', db=db)
         return {
             "message": "Error: " + str(e),
             "status_code": status.HTTP_400_BAD_REQUEST
@@ -308,6 +311,7 @@ async def update_hotel(hotel_id: int, hotel: HotelBasic, db: Session = Depends(g
         token_owner_id = db.query(Users.id).filter(
             Users.username == token_data.username).first()[0]
         if token_owner_id not in hotel_owner_ids:
+            await log(token_data.username, 'Update hotel', '401', db=db)
             return {
                 "message": "You are not hotel owner",
                 "status_code": status.HTTP_401_UNAUTHORIZED
@@ -367,12 +371,14 @@ async def update_hotel(hotel_id: int, hotel: HotelBasic, db: Session = Depends(g
             )
         db.commit()
 
+        await log(token_data.username, 'Create hotel', '200', db=db)
         return {
             "message": "Hotel updated successfully",
             "status_code": status.HTTP_200_OK
         }
 
     except Exception as e:
+        await log(token_data.username, 'Create hotel', '400', db=db)
         return {
             "message": "Error: " + str(e),
             "status_code": status.HTTP_400_BAD_REQUEST
@@ -396,6 +402,7 @@ async def delete_hotel(hotel_id: int, db: Session = Depends(get_db), token: str 
                 HotelAdmins.hotel_id == hotel_id).all()[i][0])
 
         if token_owner_id not in hotel_owner_ids:
+            await log(token_data.username, 'Delete hotel', '401', db=db)
             return {
                 "message": "You are not hotel owner",
                 "status_code": status.HTTP_401_UNAUTHORIZED
@@ -404,6 +411,7 @@ async def delete_hotel(hotel_id: int, db: Session = Depends(get_db), token: str 
         # Check if hotel exists
         hotel = db.query(Hotels).filter(Hotels.id == hotel_id).first()
         if not hotel:
+            await log(token_data.username, 'Delete hotel', '401', db=db)
             return {
                 "message": "Hotel does not exist",
                 "status_code": status.HTTP_400_BAD_REQUEST
@@ -443,11 +451,13 @@ async def delete_hotel(hotel_id: int, db: Session = Depends(get_db), token: str 
 
         db.commit()
 
+        await log(token_data.username, 'Delete hotel', '200', db=db)
         return {
             "message": "Hotel deleted successfully",
             "status_code": status.HTTP_200_OK
         }
     except Exception as e:
+        await log(token_data.username, 'Delete hotel', '400', db=db)
         return {
             "message": "Error: " + str(e),
             "status_code": status.HTTP_400_BAD_REQUEST

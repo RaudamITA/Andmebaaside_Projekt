@@ -120,19 +120,22 @@ async def update_user_with_token(user_id: int, user: UserIn, token: str = Depend
                 address=user.address if user.address else original_user.address
             ))
         else:
+            await log(user.username, 'Update user with token', '401', db=db)
             return {
                 "message": "Unauthorized",
                 "status_code": status.HTTP_401_UNAUTHORIZED
             }
 
         db.commit()
-
+        await log(user.username, 'Update user with token', '200', db=db)
         return {
             "message": "User " + original_user.username + " updated successfully",
             "status_code": status.HTTP_200_OK
         }
 
     except Exception as e:
+        await log(user.username, 'Update user with token', '400', db=db)
+
         return {
             "message": "Error: " + str(e),
             "status_code": status.HTTP_400_BAD_REQUEST
@@ -142,6 +145,7 @@ async def update_user_with_token(user_id: int, user: UserIn, token: str = Depend
 # Delete user
 @router.delete("/delete/{user_id}")
 async def delete_user(user_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    user = db.query(Users).filter(Users.id == user_id).first()
     try:
         # Validate token
         token_data = validate_token(token)
@@ -157,17 +161,20 @@ async def delete_user(user_id: int, db: Session = Depends(get_db), token: str = 
         if db_token_owner_id[0] == user_id or db_user_master_id == db_token_owner_id:
             db.query(Users).filter(Users.id == user_id).delete()
             db.commit()
+            await log(user.username, 'Delete user', '200', db=db)
             return {
                 "message": "User deleted successfully",
                 "status_code": status.HTTP_200_OK
             }
         else:
+            await log(user.username, 'Delete user', '401', db=db)
             return {
                 "message": "You are not authorized to delete this user",
                 "status_code": status.HTTP_401_UNAUTHORIZED
             }
 
     except Exception as e:
+        await log(user.username, 'Delete user', '400', db=db)
         return {
             "message": "Error: " + str(e),
             "status_code": status.HTTP_400_BAD_REQUEST

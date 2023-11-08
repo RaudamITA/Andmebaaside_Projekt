@@ -6,6 +6,8 @@ from database.database import get_db
 from database.models import Rooms, RoomAmenities, Users, HotelAdmins, Bookings
 from src.models.rooms import Room, AvailableRooms
 from src.functions.token import validate_token
+from src.functions.log import log
+
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -33,18 +35,21 @@ async def create_room(room: Room, db: Session = Depends(get_db), token: str = De
 
         # Check that token owner is creating room for hotel they own
         if room.hotel_id not in all_token_owners_hotel_ids:
+            await log(token_owner.username, 'Create room', '401', db=db)
             return {'message': 'User is not room owner or admin', 'status_code': status.HTTP_401_UNAUTHORIZED}
 
         # Check if token owner is hotels owner or admin with create permission
         hotel_relation = db.query(HotelAdmins).filter(
             HotelAdmins.user_id == token_owner.id and HotelAdmins.hotel_id == room.hotel_id).first()
         if hotel_relation.create_permission == 0:
+            await log(token_owner.username, 'Create room', '401', db=db)
             return {'message': 'User does not have create permission', 'status_code': status.HTTP_401_UNAUTHORIZED}
 
         # Check if room number already exists
         room_number = db.query(Rooms.room_number).filter(
             Rooms.room_number == room.room_number and Rooms.hotel_id == room.hotel_id).first()[0]
         if room_number == room.room_number:
+            await log(token_owner.username, 'Create room', '400', db=db)
             return {'message': 'Room number already exists', 'status_code': status.HTTP_400_BAD_REQUEST}
 
         # Create new room
@@ -70,12 +75,14 @@ async def create_room(room: Room, db: Session = Depends(get_db), token: str = De
             ))
             # db.commit()
 
+        await log(token_owner.username, 'Create room', '201', db=db)
         return {
             "message": "Room created successfully",
             "status_code": status.HTTP_201_CREATED
         }
 
     except Exception as e:
+        await log(token_owner.username, 'Create room', '400', db=db)
         return {
             "message": "Error: " + str(e),
             "status_code": status.HTTP_400_BAD_REQUEST
@@ -133,12 +140,14 @@ async def update_room(room_id: int, room: Room, db: Session = Depends(get_db), t
 
         # Check that token owner is getting rooms for hotel they own
         if room.hotel_id not in all_token_owners_hotel_ids:
+            await log(token_owner.username, 'Update room', '401', db=db)
             return {'message': 'User is not room owner or admin', 'status_code': status.HTTP_401_UNAUTHORIZED}
 
         # Check if token owner is hotels owner or admin with update permission
         hotel_relation = db.query(HotelAdmins).filter(
             HotelAdmins.user_id == token_owner.id and HotelAdmins.hotel_id == room.hotel_id).first()
         if hotel_relation.update_permission == 0:
+            await log(token_owner.username, 'Update room', '401', db=db)
             return {'message': 'User does not have update permission', 'status_code': status.HTTP_401_UNAUTHORIZED}
 
         # Update room
@@ -163,12 +172,14 @@ async def update_room(room_id: int, room: Room, db: Session = Depends(get_db), t
 
         db.commit()
 
+        await log(token_owner.username, 'Update room', '201', db=db)
         return {
             "message": "Room updated successfully",
             "status_code": status.HTTP_201_CREATED
         }
 
     except Exception as e:
+        await log(token_owner.username, 'Update room', '400', db=db)
         return {
             "message": "Error: " + str(e),
             "status_code": status.HTTP_400_BAD_REQUEST
@@ -190,12 +201,14 @@ async def delete_room(room_id: int, db: Session = Depends(get_db), token: str = 
         # Check that token owner is the owner of the room
         room = db.query(Rooms).filter(Rooms.id == room_id).first()
         if room.hotel_id not in all_token_owners_hotel_ids:
+            await log(token_owner.username, 'Delete room', '401', db=db)
             return {'message': 'User is not room owner or admin', 'status_code': status.HTTP_401_UNAUTHORIZED}
 
         # Check if token owner is hotels owner or admin with delete permission
         hotel_relation = db.query(HotelAdmins).filter(
             HotelAdmins.user_id == token_owner.id and HotelAdmins.hotel_id == room.hotel_id).first()
         if hotel_relation.delete_permission == 0:
+            await log(token_owner.username, 'Delete room', '401', db=db)
             return {'message': 'User does not have delete permission', 'status_code': status.HTTP_401_UNAUTHORIZED}
 
         # Delete room
@@ -205,12 +218,14 @@ async def delete_room(room_id: int, db: Session = Depends(get_db), token: str = 
         db.execute(delete(Rooms).where(Rooms.id == room_id))
         db.commit()
 
+        await log(token_owner.username, 'Delete room', '201', db=db)
         return {
             "message": "Room deleted successfully",
             "status_code": status.HTTP_201_CREATED
         }
 
     except Exception as e:
+        await log(token_owner.username, 'Delete room', '400', db=db)
         return {
             "message": "Error: " + str(e),
             "status_code": status.HTTP_400_BAD_REQUEST
