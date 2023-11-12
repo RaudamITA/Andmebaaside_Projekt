@@ -9,3 +9,4 @@ backend_v2/
 
 # FRONTEND
 node_modules/
+build/
