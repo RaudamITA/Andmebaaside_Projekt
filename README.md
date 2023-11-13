@@ -1,5 +1,9 @@
 # Andmebaaside_Projekt_Beta
 
+# Requirments
+> NodeJS
+> Python 3.11
+
 ## In `/frontend` folder:
 
 > To install all required dependencies, run this command:
