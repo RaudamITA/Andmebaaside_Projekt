@@ -46,3 +46,15 @@
 > ```bash
 > python main.py
 > ```
+
+## In mysql database:
+> mysql cmd:
+> ```mysql
+> create database hotel;
+> SET @@global.sql_mode= '';
+> ```
+>
+> cmd: 
+> ```bash
+> mysql -u @USER -p hotel < ./hotel.sql 
+> ```
