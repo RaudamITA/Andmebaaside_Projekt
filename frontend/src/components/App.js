@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
-import "mdb-react-ui-kit/dist/css/mdb.min.css";
-import CreateHotel from "./CreateHotel";
-import Login from "./Login";
+import React, { useState, useEffect } from 'react';
+import 'mdb-react-ui-kit/dist/css/mdb.min.css';
+import CreateHotel from './CreateHotel';
+import Login from './Login';
 import {
 	MDBNavbar,
 	MDBContainer,
@@ -13,8 +13,8 @@ import {
 	MDBBtn,
 	MDBNavbarNav,
 	MDBInputGroup,
-} from "mdb-react-ui-kit";
-import { BrowserRouter as Router } from "react-router-dom";
+} from 'mdb-react-ui-kit';
+import { BrowserRouter as Router } from 'react-router-dom';
 
 export default function App() {
 	//login popup
@@ -27,18 +27,18 @@ export default function App() {
 
 	useEffect(() => {
 		if (
-			localStorage.getItem("token") !== "undefined" &&
-			localStorage.getItem("token") !== null
+			localStorage.getItem('token') !== 'undefined' &&
+			localStorage.getItem('token') !== null
 		) {
-			fetch("http://localhost:8000/users/read/me", {
-				method: "GET",
+			fetch('http://localhost:8000/users/read/me', {
+				method: 'GET',
 				headers: {
-					Authorization: `Bearer ${localStorage.getItem("token")}`,
+					Authorization: `Bearer ${localStorage.getItem('token')}`,
 				},
 			})
 				.then((response) => response.json())
 				.then((response) => {
-					setFullname(response.first_name + " " + response.last_name);
+					setFullname(response.first_name + ' ' + response.last_name);
 					console.log(response);
 				});
 
@@ -53,31 +53,31 @@ export default function App() {
 			return;
 		}
 		const options = {
-			method: "POST",
+			method: 'POST',
 			headers: {
-				"Content-Type": "application/x-www-form-urlencoded",
+				'Content-Type': 'application/x-www-form-urlencoded',
 			},
 			body: new URLSearchParams({
-				grant_type: "password",
+				grant_type: 'password',
 				username: username,
 				password: password,
 			}),
 		};
 
-		await fetch("http://localhost:8000/token", options)
+		await fetch('http://0.0.0.0:8000/token', options)
 			.then((response) => response.json())
 			.then((response) =>
-				localStorage.setItem("token", response.access_token)
+				localStorage.setItem('token', response.access_token)
 			)
 
 			.catch((err) => console.error(err));
 
-		console.log("Requesting Token");
+		console.log('Requesting Token');
 		toggleShowLogin();
 	};
 
 	const logOut = () => {
-		localStorage.removeItem("token");
+		localStorage.removeItem('token');
 		setIsLoggedIn(false);
 	};
 
@@ -88,7 +88,7 @@ export default function App() {
 				dark
 				bgColor="dark"
 				style={{
-					borderRadius: "1rem",
+					borderRadius: '1rem',
 				}}
 			>
 				<MDBContainer fluid>

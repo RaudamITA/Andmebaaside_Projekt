@@ -2,8 +2,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from data import DBhost, DBport, DBusername, DBpassword, DBdatabase
+import os
 
-SQLALCHEMY_DATABASE_URL = f'mysql+pymysql://{DBusername}:{DBpassword}@{DBhost}:{DBport}/{DBdatabase}'
+SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{os.environ['MYSQL_USER']}:{os.environ['MYSQL_PASSWORD']}@{os.environ['MYSQL_HOST']}:{os.environ['MYSQL_PORT']}/{os.environ['MYSQL_DATABASE']}"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
