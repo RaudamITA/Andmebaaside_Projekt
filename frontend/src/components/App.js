@@ -30,7 +30,7 @@ export default function App() {
 			localStorage.getItem('token') !== 'undefined' &&
 			localStorage.getItem('token') !== null
 		) {
-			fetch('http://localhost:8000/users/read/me', {
+			fetch('http://0.0.0.0:8000/users/read/me', {
 				method: 'GET',
 				headers: {
 					Authorization: `Bearer ${localStorage.getItem('token')}`,

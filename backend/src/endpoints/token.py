@@ -23,19 +23,26 @@ router = APIRouter(
 
 @router.post("", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    print(form_data)
     # get user from db by username
     user = db.query(Users).filter(
         Users.username == form_data.username).first()
     # authenticate user
     if not user:
-        log(user.username, 'Login for access token', '400', db=db)
+        try: 
+            log(user.username, 'Login for access token', '400', db=db)
+        except:
+            pass
         return {
             'message': 'Incorrect username or password',
             'status_code': status.HTTP_400_BAD_REQUEST,
             'headers': {'WWW-Authenticate': 'Bearer'}
         }
     if not verify_password(form_data.password, user.hashed_password):
-        log(user.username, 'Login for access token', '400', db=db)
+        try:
+            log(user.username, 'Login for access token', '400', db=db)
+        except:
+            pass
         return {
             'message': 'Incorrect username or password',
             'status_code': status.HTTP_400_BAD_REQUEST,
@@ -45,6 +52,11 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
-    await log(user.username, 'Login for access token', '200', db=db)
-
-    return {"access_token": access_token, "token_type": "bearer", 'status_code': status.HTTP_200_OK}
+    try:
+        await log(user.username, 'Login for access token', '200', db=db)
+    except:
+        pass
+    try:
+        return {"access_token": access_token, "token_type": "bearer", 'status_code': status.HTTP_200_OK}
+    except:
+        return {"message": "idk", 'status_code': status.HTTP_400_BAD_REQUEST}
