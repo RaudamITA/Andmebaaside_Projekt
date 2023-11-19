@@ -1,60 +1,50 @@
 # Andmebaaside_Projekt_Beta
 
 # Requirments
-* NodeJS
-* Python 3.11
 
-## In `/frontend` folder:
+-   NodeJS
+-   Python 3.11
+-   MySQL
+-   Docker
+-   Docker-compose
 
-> To install all required dependencies, run this command:
->
+## Install Docker Desktop
+
+Install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+
+This will install Docker Engine, Docker CLI client, Docker Compose, Docker Machine, and Kitematic.
+
+## Install Python
+
+## Install NodeJS
+
+## Install MySQL
+
+## Setup
+
+### Mysql
+
 > ```bash
-> npm i
+> mysql -u root -p
 > ```
 >
-> And to start frontend server, run this command:
->
-> ```bash
-> npm start
-> ```
-
-## In `/backend` folder:
-
-> Create `data.py` file
->
-> ```python
-> DBusername = 'root'
-> DBpassword = 'password'
-> DBhost = 'localhost'
-> DBport = '3306'
-> DBdatabase = 'hotel'
->
-> #To create secret key run this in terminal: openssl rand -hex 32
-> SECRET_KEY = 'verysecretkeygoesherenlawdlanwldalwdbaljfbljnsxlkvnbodsjrvnf'
-> ALGORITHM = "HS256"
-> ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
-> ```
->
-> To install all required packages, run this command:
->
-> ```bash
-> pip install -r requirements.txt
-> ```
->
-> And to run server, run this:
->
-> ```bash
-> python main.py
-> ```
-
-## In mysql database:
-> mysql cmd:
 > ```mysql
 > create database hotel;
 > SET @@global.sql_mode= '';
+> exit
 > ```
 >
-> cmd: 
 > ```bash
-> mysql -u @USER -p hotel < ./hotel.sql 
+> mysql -u @USER -p hotel < ./hotel.sql
+> ```
+>
+> modify [docker-compose.yml](docker-compose.yml) line 21 if needed
+
+### Docker
+
+> ```bash
+> docker pull python:3.11
+> docker pull node:14
+> docker-compose build
+> docker-compose up
 > ```
